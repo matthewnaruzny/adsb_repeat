@@ -2,11 +2,10 @@ import os
 import time
 import json
 
-import config
-
-aws_config = config.aws
-
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
+
+import config
+aws_config = config.aws
 
 private_path = os.path.abspath(aws_config['private_key'])
 cert_path = os.path.abspath(aws_config['cert'])
@@ -31,9 +30,10 @@ def recv_message(msg):
     print(msg)
 
 
-print("Connection...")
+print("Connecting...")
 myMQTTClient.connect()
 myMQTTClient.subscribe("adsb/" + aws_config['id'], 1, recv_message)
+print("Connected")
 
 default_topic = "adsb/" + aws_config['id']
 
@@ -47,7 +47,10 @@ while True:
         t_aircraft = a['aircraft']
         print(t_aircraft)
         print("PUBLISH")
-        myMQTTClient.publish(default_topic + "/tracking/num", str(len(t_aircraft)), 1)
-        myMQTTClient.publish(default_topic + "/tracking", str(t_aircraft), 1)
+        try:
+            myMQTTClient.publish(default_topic + "/tracking/num", str(len(t_aircraft)), 1)
+            myMQTTClient.publish(default_topic + "/tracking", str(t_aircraft), 1)
+        except Exception:
+            print("Unable to Publish")
 
     time.sleep(1)
