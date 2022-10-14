@@ -40,17 +40,16 @@ default_topic = "adsb/" + aws_config['id']
 os.chdir('/run/dump1090-mutability')
 
 while True:
-    os.system("clear")
     current_data = []
     with open("aircraft.json", "r") as f:
         a = json.load(f)
         t_aircraft = a['aircraft']
         print(t_aircraft)
-        print("PUBLISH")
         try:
             myMQTTClient.publish(default_topic + "/tracking/num", str(len(t_aircraft)), 1)
             myMQTTClient.publish(default_topic + "/tracking", str(t_aircraft), 1)
         except Exception:
             print("Unable to Publish")
+        print("Published")
 
     time.sleep(1)
