@@ -33,10 +33,9 @@ def recv_message(msg):
 
 print("Connection...")
 myMQTTClient.connect()
-myMQTTClient.subscribe("adsb/remote/" + aws_config['id'], 1, recv_message)
+myMQTTClient.subscribe("adsb/" + aws_config['id'], 1, recv_message)
 
-repeat_num = aws_config['id'].split('_')[2]
-default_topic = "adsb/remote/" + repeat_num
+default_topic = "adsb/" + aws_config['id']
 
 os.chdir('/run/dump1090-mutability')
 
