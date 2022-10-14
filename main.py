@@ -8,10 +8,14 @@ aws_config = config.aws
 
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 
+
+private_path = os.path.abspath(aws_config['private_key'])
+cert_path = os.path.abspath(aws_config['cert'])
+root_path = os.path.abspath(aws_config['root_ca'])
+
 myMQTTClient = AWSIoTMQTTClient(aws_config['id'])
 myMQTTClient.configureEndpoint(aws_config['endpoint_addr'], aws_config['endpoint_port'])
-myMQTTClient.configureCredentials(aws_config['root_ca'], aws_config['private_key'],
-                                  aws_config['cert'])
+myMQTTClient.configureCredentials(root_path, private_path, cert_path)
 myMQTTClient.configureOfflinePublishQueueing(-1)  # Infinite offline Publish queueing
 myMQTTClient.configureDrainingFrequency(2)  # Draining: 2 Hz
 myMQTTClient.configureConnectDisconnectTimeout(10)  # 10 sec
