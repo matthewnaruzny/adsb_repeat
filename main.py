@@ -21,8 +21,6 @@ myMQTTClient.configureDrainingFrequency(2)  # Draining: 2 Hz
 myMQTTClient.configureConnectDisconnectTimeout(10)  # 10 sec
 myMQTTClient.configureMQTTOperationTimeout(5)  # 5 sec
 
-os.chdir('/run/dump1090-mutability')
-
 
 def recv_message(msg):
     print(msg)
@@ -34,6 +32,7 @@ myMQTTClient.subscribe("adsb/remote/" + aws_config['id'], 1, recv_message)
 repeat_num = aws_config['id'].split('_')[2]
 default_topic = "adsb/remote/" + repeat_num
 
+os.chdir('/run/dump1090-mutability')
 
 while True:
     os.system("clear")
