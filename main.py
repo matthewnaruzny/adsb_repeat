@@ -33,7 +33,10 @@ while True:
         a = json.load(f)
         t_aircraft = a['aircraft']
         for i in t_aircraft:
-            current_data.append([i['hex'], i['flight'], i['squawk'], i['altitude'], i['speed'], i['lat'], i['lon']])
+            try:
+                current_data.append([i['hex'], i['flight'], i['squawk'], i['altitude'], i['speed'], i['lat'], i['lon']])
+            except KeyError:
+                current_data.append([i['hex']])
 
         print(tabulate(current_data, headers=["icao24", "Flight #", "Squawk", "Alt", "Speed", "lat", "long"]))
 
