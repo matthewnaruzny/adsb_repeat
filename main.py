@@ -48,7 +48,6 @@ while True:
         t_aircraft = a['aircraft']
         print(t_aircraft)
         print("PUBLISH")
-        myMQTTClient.publish()
         myMQTTClient.publish(default_topic + "/tracking/num", str(len(t_aircraft)), 1)
         myMQTTClient.publish(default_topic + "/tracking", str(t_aircraft), 1)
 
