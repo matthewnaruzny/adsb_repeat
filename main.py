@@ -28,7 +28,6 @@ def recv_message(msg):
 while True:
     os.system("clear")
     current_data = []
-    print("---------------Flight Data---------------")
     with open("aircraft.json", "r") as f:
         a = json.load(f)
         t_aircraft = a['aircraft']
@@ -38,7 +37,8 @@ while True:
             except KeyError:
                 current_data.append([i['hex']])
 
-        print(tabulate(current_data, headers=["icao24", "Flight #", "Squawk", "Alt", "Speed", "lat", "long"]))
+        print("---------------Flight Data---------------\n",
+              tabulate(current_data, headers=["icao24", "Flight #", "Squawk", "Alt", "Speed", "lat", "long"]),
+              "\n-----------------------------------------")
 
-    print("-----------------------------------------")
     time.sleep(1)
