@@ -63,3 +63,6 @@ class ADSB_Controller:
                     print("Unable to Publish")
 
             time.sleep(5)
+
+
+client = ADSB_Controller(config.aws)
