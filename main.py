@@ -7,11 +7,13 @@ from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 import config
 
 
-class ADSB_Controller:
+class ADSBController:
 
     def __init__(self, aws_config):
         self.aws_config = aws_config
         self.mqtt_client = self.establish_aws_connection()
+
+        self.watchlist = self.load_watchlist()
 
         # Start Monitoring
         self.monitor()
@@ -42,27 +44,49 @@ class ADSB_Controller:
 
         return myMQTTClient
 
-    def recv_message(msg):
-        print("New Message: " + str(msg))
+    def recv_message(self, new_msg):
+        print("New Message: " + str(new_msg))
+        # Check for Commands:
+        if new_msg.split()[0] == "alert_add":
+            icao24 = new_msg.split()[1]
+            self.watchlist_add(icao24)
+
+    def load_watchlist(self, filename="watchlist.txt"):
+        new_watchlist = []
+        if os.path.exists(filename):
+            with open(filename, "r") as f:
+                for l in f.readlines():
+                    new_watchlist.append(l.strip())
+        return new_watchlist
+
+    def watchlist_add(self, icao24, filename="watchlist.txt"):
+        self.watchlist.append(icao24)
+        with open(filename, "a") as watchlist_file:
+            watchlist_file.write(icao24)
 
     def monitor(self):
         default_topic = "adsb/" + self.aws_config['id']
-        os.chdir('/run/dump1090-mutability')
 
         while True:
-            current_data = []
-            with open("aircraft.json", "r") as f:
+            with open("/run/dump1090-mutability/aircraft.json", "r") as f:
                 a = json.load(f)
                 t_aircraft = a['aircraft']
-                print(t_aircraft)
                 try:
                     self.mqtt_client.publish(default_topic + "/tracking/num", str(len(t_aircraft)), 1)
                     self.mqtt_client.publish(default_topic + "/tracking", str(t_aircraft), 1)
-                    print("Published")
                 except Exception:
-                    print("Unable to Publish")
+                    print("General Publish Error")
+
+                for aircraft in t_aircraft:
+                    if aircraft['hex'] in self.watchlist:
+                        print("WATCHLIST ALERT" + aircraft['hex'])
+                        try:
+                            self.mqtt_client.publish(default_topic + "/tracking/alert", str(aircraft), 1)
+                        except Exception:
+                            print("Alert Publish Error")
+
 
             time.sleep(5)
 
 
-client = ADSB_Controller(config.aws)
+client = ADSBController(config.aws)
