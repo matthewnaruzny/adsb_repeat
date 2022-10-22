@@ -31,6 +31,7 @@ class ADSBController:
         myMQTTClient.configureDrainingFrequency(2)  # Draining: 2 Hz
         myMQTTClient.configureConnectDisconnectTimeout(15)  # 15 sec
         myMQTTClient.configureMQTTOperationTimeout(15)  # 15 sec
+        myMQTTClient.onMessage = self.recv_message
 
         print("Connecting to Endpoint...")
         try:
@@ -44,12 +45,10 @@ class ADSBController:
 
         return myMQTTClient
 
-    def recv_message(self, client, userdata, message, **arg1):
-        print("New Message: " + str(message))
-        print(client)
-        print(userdata)
-        print(message)
-        print(arg1)
+    # self, client, userdata, message, **arg1
+    def recv_message(self, message):
+        print(message.topic)
+        print(message.payload)
 
     def load_watchlist(self, filename="watchlist.txt"):
         new_watchlist = []
@@ -83,7 +82,6 @@ class ADSBController:
                             self.mqtt_client.publish(default_topic + "/tracking/alert", str(aircraft), 1)
                         except Exception:
                             print("Alert Publish Error")
-
 
             time.sleep(5)
 
