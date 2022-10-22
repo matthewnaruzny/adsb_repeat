@@ -44,11 +44,11 @@ class ADSBController:
 
         return myMQTTClient
 
-    def recv_message(self, new_msg):
-        print("New Message: " + str(new_msg))
+    def recv_message(self, topic, payload, dup, qos, retain, **kwargs):
+        print("New Message: " + str(payload))
         # Check for Commands:
-        if new_msg.split()[0] == "alert_add":
-            icao24 = new_msg.split()[1]
+        if payload.split()[0] == "alert_add":
+            icao24 = payload.split()[1]
             self.watchlist_add(icao24)
 
     def load_watchlist(self, filename="watchlist.txt"):
