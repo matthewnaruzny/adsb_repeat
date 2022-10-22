@@ -45,10 +45,12 @@ class ADSBController:
 
         return myMQTTClient
 
-    # self, client, userdata, message, **arg1
-    def recv_message(self, client, userdata, message, **arg1):
-        print(message.topic)
-        print(message.payload)
+    def recv_message(self, msg_client, userdata, message, **arg1):
+        mqtt_topic = message.topic
+        mqtt_msg = message.payload.decode('ASCII')
+        if mqtt_msg.split()[0] == "watch_add":
+            new_caio24 = mqtt_msg.split[1].strip()
+            self.watchlist_add(new_caio24)
 
     def load_watchlist(self, filename="watchlist.txt"):
         new_watchlist = []
@@ -60,6 +62,7 @@ class ADSBController:
 
     def watchlist_add(self, icao24, filename="watchlist.txt"):
         self.watchlist.append(icao24)
+        print("Adding " + str(icao24) + " to watchlist.")
         with open(filename, "a") as watchlist_file:
             watchlist_file.write(icao24)
 
