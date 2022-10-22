@@ -31,7 +31,7 @@ class ADSBController:
         myMQTTClient.configureDrainingFrequency(2)  # Draining: 2 Hz
         myMQTTClient.configureConnectDisconnectTimeout(15)  # 15 sec
         myMQTTClient.configureMQTTOperationTimeout(15)  # 15 sec
-        myMQTTClient.onMessage = self.recv_message
+        # myMQTTClient.onMessage = self.recv_message
 
         print("Connecting to Endpoint...")
         try:
@@ -46,7 +46,7 @@ class ADSBController:
         return myMQTTClient
 
     # self, client, userdata, message, **arg1
-    def recv_message(self, message):
+    def recv_message(self, client, userdata, message, **arg1):
         print(message.topic)
         print(message.payload)
 
