@@ -58,7 +58,9 @@ class ADSBController:
         if os.path.exists(filename):
             with open(filename, "r") as f:
                 for l in f.readlines():
+                    print(l)
                     new_watchlist.append(l.strip())
+        print("** Done **")
         return new_watchlist
 
     def watchlist_add(self, icao24, filename="watchlist.txt"):
