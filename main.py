@@ -54,6 +54,7 @@ class ADSBController:
 
     def load_watchlist(self, filename="watchlist.txt"):
         new_watchlist = []
+        print("** Loading Watchlist **")
         if os.path.exists(filename):
             with open(filename, "r") as f:
                 for l in f.readlines():
@@ -64,7 +65,7 @@ class ADSBController:
         self.watchlist.append(icao24)
         print("Adding " + str(icao24) + " to watchlist.")
         with open(filename, "a") as watchlist_file:
-            watchlist_file.write(icao24)
+            watchlist_file.write(str(icao24) + '\n')
 
     def monitor(self):
         default_topic = "adsb/" + self.aws_config['id']
