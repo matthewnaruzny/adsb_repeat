@@ -44,8 +44,12 @@ class ADSBController:
 
         return myMQTTClient
 
-    def recv_message(self, topic, payload, **kwargs):
+    def recv_message(self, topic, payload, arg1, **arg2):
         print("New Message: " + str(payload))
+        print(topic)
+        print(payload)
+        print(arg1)
+        print(arg2)
         # Check for Commands:
         if payload.split()[0] == "alert_add":
             icao24 = payload.split()[1]
