@@ -49,8 +49,8 @@ class ADSBController:
         mqtt_topic = message.topic
         mqtt_msg = message.payload.decode('ASCII')
         if mqtt_msg.split()[0] == "watch_add":
-            new_caio24 = mqtt_msg.split[1].strip()
-            self.watchlist_add(new_caio24)
+            new_icao24 = mqtt_msg.split()[1].strip()
+            self.watchlist_add(new_icao24)
 
     def load_watchlist(self, filename="watchlist.txt"):
         new_watchlist = []
