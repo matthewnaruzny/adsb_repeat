@@ -44,16 +44,12 @@ class ADSBController:
 
         return myMQTTClient
 
-    def recv_message(self, topic, payload, arg1, **arg2):
-        print("New Message: " + str(payload))
-        print(topic)
-        print(payload)
+    def recv_message(self, client, userdata, message, **arg1):
+        print("New Message: " + str(message))
+        print(client)
+        print(userdata)
+        print(message)
         print(arg1)
-        print(arg2)
-        # Check for Commands:
-        if payload.split()[0] == "alert_add":
-            icao24 = payload.split()[1]
-            self.watchlist_add(icao24)
 
     def load_watchlist(self, filename="watchlist.txt"):
         new_watchlist = []
@@ -76,7 +72,6 @@ class ADSBController:
                 a = json.load(f)
                 t_aircraft = a['aircraft']
                 try:
-                    self.mqtt_client.publish(default_topic + "/tracking/num", str(len(t_aircraft)), 1)
                     self.mqtt_client.publish(default_topic + "/tracking", str(t_aircraft), 1)
                 except Exception:
                     print("General Publish Error")
