@@ -73,9 +73,8 @@ class ADSBController:
             watchlist_file.write(str(icao24) + '\n')
 
     def watchlist_remove(self, icao24, filename="watchlist.txt"):
-        # Remove from Watchlist Variable
         self.watchlist.remove(icao24)
-        # Remove from Watchlist Text File
+        print("Removing " + str(icao24) + " from watchlist.")
         with open(filename, "r") as watchlist_file:
             watched_lines = watchlist_file.readlines()
         with open(filename, "w") as watchlist_file:
@@ -98,12 +97,14 @@ class ADSBController:
                 alert_aircraft = []
                 for aircraft in t_aircraft:
                     if aircraft['hex'] in self.watchlist:
-                        print("WATCHLIST ALERT" + aircraft['hex'])
+                        print("WATCHLIST ALERT: " + aircraft['hex'])
                         alert_aircraft.append(aircraft)
-                try:
-                    self.mqtt_client.publish(default_topic + "/tracking/alert", str(alert_aircraft), 1)
-                except Exception:
-                    print("Alert Publish Error")
+
+                if len(alert_aircraft) > 0:
+                    try:
+                        self.mqtt_client.publish(default_topic + "/tracking/alert", str(alert_aircraft), 1)
+                    except Exception:
+                        print("Alert Publish Error")
 
             time.sleep(5)
 
