@@ -99,6 +99,11 @@ class ADSBController:
                     if aircraft['hex'] in self.watchlist:
                         print("WATCHLIST ALERT: " + aircraft['hex'])
                         alert_aircraft.append(aircraft)
+                    if 'squawk' in aircraft:
+                        squawk = aircraft['squawk']
+                        if squawk == '7700' or squawk == '7600' or squawk == '7500':
+                            print("SQUAWK ALERT: " + aircraft['hex'] + " " + squawk)
+                            alert_aircraft.append(aircraft)
 
                 if len(alert_aircraft) > 0:
                     try:
