@@ -49,8 +49,11 @@ class ADSBController:
         mqtt_topic = message.topic
         mqtt_msg = message.payload.decode('ASCII')
         if mqtt_msg.split()[0] == "watch_add":
-            new_icao24 = mqtt_msg.split()[1].strip()
-            self.watchlist_add(new_icao24)
+            icao24 = mqtt_msg.split()[1].strip()
+            self.watchlist_add(icao24)
+        if mqtt_msg.split()[0] == "watch_remove":
+            icao24 = mqtt_msg.split()[1].strip()
+            self.watchlist_remove(icao24)
 
     def load_watchlist(self, filename="watchlist.txt"):
         new_watchlist = []
@@ -69,6 +72,17 @@ class ADSBController:
         with open(filename, "a") as watchlist_file:
             watchlist_file.write(str(icao24) + '\n')
 
+    def watchlist_remove(self, icao24, filename="watchlist.txt"):
+        # Remove from Watchlist Variable
+        self.watchlist.remove(icao24)
+        # Remove from Watchlist Text File
+        with open(filename, "r") as watchlist_file:
+            watched_lines = watchlist_file.readlines()
+        with open(filename, "w") as watchlist_file:
+            for line in watched_lines:
+                if line.strip("\n") != icao24:
+                    watchlist_file.write(line)
+
     def monitor(self):
         default_topic = "adsb/" + self.aws_config['id']
 
@@ -81,13 +95,15 @@ class ADSBController:
                 except Exception:
                     print("General Publish Error")
 
+                alert_aircraft = []
                 for aircraft in t_aircraft:
                     if aircraft['hex'] in self.watchlist:
                         print("WATCHLIST ALERT" + aircraft['hex'])
-                        try:
-                            self.mqtt_client.publish(default_topic + "/tracking/alert", str(aircraft), 1)
-                        except Exception:
-                            print("Alert Publish Error")
+                        alert_aircraft.append(aircraft)
+                try:
+                    self.mqtt_client.publish(default_topic + "/tracking/alert", str(alert_aircraft), 1)
+                except Exception:
+                    print("Alert Publish Error")
 
             time.sleep(5)
 

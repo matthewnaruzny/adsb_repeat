@@ -2,5 +2,5 @@ run:
 	python3 main.py
 
 test:
-    git pull
-    make run
+	git pull
+	python3 main.py
