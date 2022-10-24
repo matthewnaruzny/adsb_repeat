@@ -116,12 +116,12 @@ class ADSBController:
                         try:
                             a_pub_json = json.dumps(aircraft)
                             self.mqtt_client.publish(default_topic + "/tracking/alert", str(a_pub_json), 1)
-                            alerted += aircraft
+                            alerted += aircraft['hex']
 
                         except Exception:
                             print("Alert Publish Error")
                     elif alert:
-                        alerted += aircraft
+                        alerted += aircraft['hex']
 
                 old_alerts = alerted
 
