@@ -62,15 +62,16 @@ class ADSBController:
             with open(filename, "r") as f:
                 for l in f.readlines():
                     print(l)
-                    new_watchlist.append(l.strip())
+                    new_watchlist.append(l.strip().lower())
         print("** Done **")
         return new_watchlist
 
     def watchlist_add(self, icao24, filename="watchlist.txt"):
-        self.watchlist.append(icao24)
+        self.watchlist.append(icao24.lower())
         print("Adding " + str(icao24) + " to watchlist.")
         with open(filename, "a") as watchlist_file:
-            watchlist_file.write(str(icao24) + '\n')
+            watchlist_file.write(str(icao24.lower()) + '\n')
+        self.send_log("Added to Watchlist: " + str(icao24))
 
     def watchlist_remove(self, icao24, filename="watchlist.txt"):
         self.watchlist.remove(icao24)
@@ -81,6 +82,17 @@ class ADSBController:
             for line in watched_lines:
                 if line.strip("\n") != icao24:
                     watchlist_file.write(line)
+        self.send_log("Removed from Watchlist: " + str(icao24))
+
+    def send_log(self, message):
+        payload = json.dumps({"message": message})
+        default_topic = "adsb/" + self.aws_config['id']
+        try:
+            self.mqtt_client.publish(default_topic, payload, 1)
+            return True
+        except Exception:
+            print("General Publish Error")
+            return False
 
     def monitor(self):
         default_topic = "adsb/" + self.aws_config['id']
