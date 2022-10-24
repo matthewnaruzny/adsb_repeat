@@ -85,6 +85,8 @@ class ADSBController:
     def monitor(self):
         default_topic = "adsb/" + self.aws_config['id']
 
+        old_alerts = []
+
         while True:
             with open("/run/dump1090-mutability/aircraft.json", "r") as f:
                 a = json.load(f)
@@ -94,22 +96,30 @@ class ADSBController:
                 except Exception:
                     print("General Publish Error")
 
-                alert_aircraft = []
+                alerted = []
                 for aircraft in t_aircraft:
+                    alert = False
+
                     if aircraft['hex'] in self.watchlist:
                         print("WATCHLIST ALERT: " + aircraft['hex'])
-                        alert_aircraft.append(aircraft)
+                        alert = True
                     if 'squawk' in aircraft:
                         squawk = aircraft['squawk']
                         if squawk == '7700' or squawk == '7600' or squawk == '7500':
                             print("SQUAWK ALERT: " + aircraft['hex'] + " " + squawk)
-                            alert_aircraft.append(aircraft)
+                            alert = True
 
-                if len(alert_aircraft) > 0:
-                    try:
-                        self.mqtt_client.publish(default_topic + "/tracking/alert", str(alert_aircraft), 1)
-                    except Exception:
-                        print("Alert Publish Error")
+                    if alert and aircraft['hex'] not in old_alerts:
+                        try:
+                            self.mqtt_client.publish(default_topic + "/tracking/alert", str(aircraft), 1)
+                            alerted += aircraft
+
+                        except Exception:
+                            print("Alert Publish Error")
+                    elif alert and aircraft['hex'] in old_alerts:
+                        alerted += aircraft
+
+                old_alerts = alerted
 
             time.sleep(5)
 
