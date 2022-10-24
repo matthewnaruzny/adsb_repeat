@@ -92,7 +92,8 @@ class ADSBController:
                 a = json.load(f)
                 t_aircraft = a['aircraft']
                 try:
-                    self.mqtt_client.publish(default_topic + "/tracking", str(t_aircraft), 1)
+                    a_pub_json = json.dumps(t_aircraft)
+                    self.mqtt_client.publish(default_topic + "/tracking", str(a_pub_json), 1)
                 except Exception:
                     print("General Publish Error")
 
@@ -111,7 +112,8 @@ class ADSBController:
 
                     if alert and aircraft['hex'] not in old_alerts:
                         try:
-                            self.mqtt_client.publish(default_topic + "/tracking/alert", str(aircraft), 1)
+                            a_pub_json = json.dumps(aircraft)
+                            self.mqtt_client.publish(default_topic + "/tracking/alert", str(a_pub_json), 1)
                             alerted += aircraft
 
                         except Exception:
