@@ -103,11 +103,13 @@ class ADSBController:
 
                     if aircraft['hex'] in self.watchlist:
                         print("WATCHLIST ALERT: " + aircraft['hex'])
+                        aircraft['ALERT_W'] = "WATCHLIST ALERT"
                         alert = True
                     if 'squawk' in aircraft:
                         squawk = aircraft['squawk']
                         if squawk == '7700' or squawk == '7600' or squawk == '7500':
                             print("SQUAWK ALERT: " + aircraft['hex'] + " " + squawk)
+                            aircraft['ALERT_S'] = "SQUAWK ALERT"
                             alert = True
 
                     if alert and aircraft['hex'] not in old_alerts:
@@ -118,7 +120,7 @@ class ADSBController:
 
                         except Exception:
                             print("Alert Publish Error")
-                    elif alert and aircraft['hex'] in old_alerts:
+                    elif alert:
                         alerted += aircraft
 
                 old_alerts = alerted
