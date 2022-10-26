@@ -49,38 +49,47 @@ class ADSBController:
         mqtt_topic = message.topic
         mqtt_msg = message.payload.decode('ASCII')
         if mqtt_msg.split()[0] == "watch_add":
-            icao24 = mqtt_msg.split()[1].strip()
-            self.watchlist_add(icao24)
+            icao24 = mqtt_msg.split()[1].strip().lower()
+            id_msg = mqtt_msg.split()[2].strip()
+            self.watchlist_add(icao24, id_msg)
         if mqtt_msg.split()[0] == "watch_remove":
             icao24 = mqtt_msg.split()[1].strip()
             self.watchlist_remove(icao24)
 
     def load_watchlist(self, filename="watchlist.txt"):
-        new_watchlist = []
+        new_watchlist = {}
         print("** Loading Watchlist **")
         if os.path.exists(filename):
             with open(filename, "r") as f:
                 for l in f.readlines():
-                    print(l)
-                    new_watchlist.append(l.strip().lower())
+                    ls = l.strip().lower().split()
+                    new_watchlist[ls[0]] = ls[1]
         print("** Done **")
         return new_watchlist
 
-    def watchlist_add(self, icao24, filename="watchlist.txt"):
-        self.watchlist.append(icao24.lower())
+    def watchlist_add(self, icao24, id_msg, filename="watchlist.txt"):
+        # Don't add if already in list
+        if icao24 in self.watchlist.keys():
+            return False
+
+        self.watchlist[icao24] = id_msg
         print("Adding " + str(icao24) + " to watchlist.")
         with open(filename, "a") as watchlist_file:
-            watchlist_file.write(str(icao24.lower()) + '\n')
+            watchlist_file.write(str(icao24.lower()) + ' ' + str(id_msg) + '\n')
         self.send_log("Added to Watchlist: " + str(icao24))
 
     def watchlist_remove(self, icao24, filename="watchlist.txt"):
-        self.watchlist.remove(icao24)
+        # Don't remove if not in list
+        if icao24 not in self.watchlist.keys():
+            return False
+
+        self.watchlist.pop(icao24)
         print("Removing " + str(icao24) + " from watchlist.")
         with open(filename, "r") as watchlist_file:
             watched_lines = watchlist_file.readlines()
         with open(filename, "w") as watchlist_file:
             for line in watched_lines:
-                if line.strip("\n") != icao24:
+                if line.strip("\n").split()[0] != icao24:
                     watchlist_file.write(line)
         self.send_log("Removed from Watchlist: " + str(icao24))
 
@@ -113,9 +122,10 @@ class ADSBController:
                 for aircraft in t_aircraft:
                     alert = False
 
-                    if aircraft['hex'] in self.watchlist:
+                    if aircraft['hex'] in self.watchlist.keys():
                         print("WATCHLIST ALERT: " + aircraft['hex'])
                         aircraft['ALERT_W'] = "WATCHLIST ALERT"
+                        aircraft['ALERT_W_DISPLAY'] = self.watchlist[aircraft['hex']]
                         alert = True
                     if 'squawk' in aircraft:
                         squawk = aircraft['squawk']
