@@ -123,6 +123,8 @@ class ADSBController:
         if config.mode == "aws":
             self.controller = AWSConnector(config, self.watchlist)
 
+        self.monitor()
+
     def monitor(self):
 
         old_alerts = []

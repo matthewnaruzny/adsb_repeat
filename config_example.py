@@ -1,3 +1,4 @@
+mode = "aws"
 aws = {
     "endpoint_addr": "ENDPOINT",
     "endpoint_port": 8883,
