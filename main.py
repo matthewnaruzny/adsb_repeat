@@ -7,18 +7,86 @@ from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 import config
 
 
-class ADSBController:
+class Watchlist:
 
-    def __init__(self, aws_config):
-        self.aws_config = aws_config
-        self.mqtt_client = self.establish_aws_connection()
+    def __init__(self, filename="watchlist.txt"):
+        self.filename = filename
+        self.watchlist = {}
+        self.loadList()
 
-        self.watchlist = self.load_watchlist()
+    def loadList(self):
+        if os.path.exists(self.filename):
+            with open(self.filename, "r") as f:
+                for line in f.readlines():
+                    ls = line.strip().lower().split()
+                    self.watchlist[ls[0]] = ls[1]
 
-        # Start Monitoring
-        self.monitor()
+    def add(self, icao24, display_message):
+        icao24 = icao24.lower()
+        if icao24 in self.watchlist.keys():
+            return False
 
-    def establish_aws_connection(self):
+        self.watchlist[icao24] = display_message
+        print("Adding " + str(icao24) + " to watchlist.")
+        with open(self.filename, "a") as watchlist_file:
+            watchlist_file.write(str(icao24) + ' ' + str(display_message) + '\n')
+        return True
+
+    def remove(self, icao24):
+        icao24 = icao24.lower()
+        if icao24 not in self.watchlist.keys():
+            return False
+
+        self.watchlist.pop(icao24)
+        print("Removing " + str(icao24) + " from watchlist.")
+        with open(self.filename, "r") as watchlist_file:
+            watched_lines = watchlist_file.readlines()
+        with open(self.filename, "w") as watchlist_file:
+            for line in watched_lines:
+                if line.strip("\n").split()[0] != icao24:
+                    watchlist_file.write(line)
+        return True
+
+    def contains(self, icao24):
+        return icao24 in self.watchlist.keys()
+
+    def getDisplay(self, icao24):
+        return self.watchlist[icao24]
+
+
+class MQTTController:
+
+    def __init__(self, data_config, watchlist):
+        self.data_config = data_config
+        self.watchlist = watchlist
+
+    def on_message(self, payload):
+        if payload.split()[0] == "watch_add":
+            icao24 = payload.split()[1].strip().lower()
+            id_msg = payload.split()[2].strip()
+            self.watchlist.add(icao24, id_msg)
+        if payload.split()[0] == "watch_remove":
+            icao24 = payload.split()[1].strip()
+            self.watchlist.remove(icao24)
+
+
+class AWSConnector(MQTTController):
+
+    def __init__(self, data_config, watchlist):
+        super().__init__(data_config, watchlist)
+        self.aws_config = data_config.aws
+        self.default_topic = "adsb/" + self.aws_config['id']
+        self.aws_client = self.establish_connection()
+
+    def aws_msg_recv(self, msg_client, userdata, message, **arg1):
+        mqtt_topic = message.topic
+        mqtt_msg = message.payload.decode('ASCII')
+        self.on_message(mqtt_msg)
+
+    def publish(self, topic, payload, qos):
+        self.aws_client.publish(topic, payload, qos)
+
+    def establish_connection(self):
         private_path = os.path.abspath(self.aws_config['private_key'])
         cert_path = os.path.abspath(self.aws_config['cert'])
         root_path = os.path.abspath(self.aws_config['root_ca'])
@@ -31,12 +99,11 @@ class ADSBController:
         myMQTTClient.configureDrainingFrequency(2)  # Draining: 2 Hz
         myMQTTClient.configureConnectDisconnectTimeout(15)  # 15 sec
         myMQTTClient.configureMQTTOperationTimeout(15)  # 15 sec
-        # myMQTTClient.onMessage = self.recv_message
 
         print("Connecting to Endpoint...")
         try:
             myMQTTClient.connect()
-            myMQTTClient.subscribe("adsb/" + self.aws_config['id'], 1, self.recv_message)
+            myMQTTClient.subscribe("adsb/" + self.aws_config['id'], 1, self.aws_msg_recv)
             print("adsb/" + self.aws_config['id'])
             print("Connected and Subscribed")
         except Exception:
@@ -45,66 +112,18 @@ class ADSBController:
 
         return myMQTTClient
 
-    def recv_message(self, msg_client, userdata, message, **arg1):
-        mqtt_topic = message.topic
-        mqtt_msg = message.payload.decode('ASCII')
-        if mqtt_msg.split()[0] == "watch_add":
-            icao24 = mqtt_msg.split()[1].strip().lower()
-            id_msg = mqtt_msg.split()[2].strip()
-            self.watchlist_add(icao24, id_msg)
-        if mqtt_msg.split()[0] == "watch_remove":
-            icao24 = mqtt_msg.split()[1].strip()
-            self.watchlist_remove(icao24)
 
-    def load_watchlist(self, filename="watchlist.txt"):
-        new_watchlist = {}
-        print("** Loading Watchlist **")
-        if os.path.exists(filename):
-            with open(filename, "r") as f:
-                for l in f.readlines():
-                    ls = l.strip().lower().split()
-                    new_watchlist[ls[0]] = ls[1]
-        print("** Done **")
-        return new_watchlist
+class ADSBController:
 
-    def watchlist_add(self, icao24, id_msg, filename="watchlist.txt"):
-        # Don't add if already in list
-        if icao24 in self.watchlist.keys():
-            return False
+    def __init__(self, config):
+        # Load Watchlist
+        self.watchlist = Watchlist()
 
-        self.watchlist[icao24] = id_msg
-        print("Adding " + str(icao24) + " to watchlist.")
-        with open(filename, "a") as watchlist_file:
-            watchlist_file.write(str(icao24.lower()) + ' ' + str(id_msg) + '\n')
-        self.send_log("Added to Watchlist: " + str(icao24))
-
-    def watchlist_remove(self, icao24, filename="watchlist.txt"):
-        # Don't remove if not in list
-        if icao24 not in self.watchlist.keys():
-            return False
-
-        self.watchlist.pop(icao24)
-        print("Removing " + str(icao24) + " from watchlist.")
-        with open(filename, "r") as watchlist_file:
-            watched_lines = watchlist_file.readlines()
-        with open(filename, "w") as watchlist_file:
-            for line in watched_lines:
-                if line.strip("\n").split()[0] != icao24:
-                    watchlist_file.write(line)
-        self.send_log("Removed from Watchlist: " + str(icao24))
-
-    def send_log(self, message):
-        payload = json.dumps({"message": message})
-        default_topic = "adsb/" + self.aws_config['id']
-        try:
-            self.mqtt_client.publish(default_topic, payload, 1)
-            return True
-        except Exception:
-            print("General Publish Error")
-            return False
+        # Remote Mode
+        if config.mode == "aws":
+            self.controller = AWSConnector(config, self.watchlist)
 
     def monitor(self):
-        default_topic = "adsb/" + self.aws_config['id']
 
         old_alerts = []
 
@@ -114,7 +133,7 @@ class ADSBController:
                 t_aircraft = a['aircraft']
                 try:
                     a_pub_json = json.dumps(t_aircraft)
-                    self.mqtt_client.publish(default_topic + "/tracking", str(a_pub_json), 1)
+                    self.controller.publish(self.controller.default_topic + "/tracking", str(a_pub_json), 1)
                 except Exception:
                     print("General Publish Error")
 
@@ -122,10 +141,10 @@ class ADSBController:
                 for aircraft in t_aircraft:
                     alert = False
 
-                    if aircraft['hex'] in self.watchlist.keys():
+                    if self.watchlist.contains(aircraft['hex']):
                         print("WATCHLIST ALERT: " + aircraft['hex'])
                         aircraft['ALERT_W'] = "WATCHLIST ALERT"
-                        aircraft['ALERT_W_DISPLAY'] = self.watchlist[aircraft['hex']]
+                        aircraft['ALERT_W_DISPLAY'] = self.watchlist.getDisplay(aircraft['hex'])
                         alert = True
                     if 'squawk' in aircraft:
                         squawk = aircraft['squawk']
@@ -137,7 +156,8 @@ class ADSBController:
                     if alert and aircraft['hex'] not in old_alerts:
                         try:
                             a_pub_json = json.dumps(aircraft)
-                            self.mqtt_client.publish(default_topic + "/tracking/alert", str(a_pub_json), 1)
+                            self.controller.publish(self.controller.default_topic + "/tracking/alert",
+                                                    str(a_pub_json), 1)
                             alerted.append(aircraft['hex'])
 
                         except Exception:
