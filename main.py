@@ -170,4 +170,4 @@ class ADSBController:
             time.sleep(5)
 
 
-client = ADSBController(config.aws)
+client = ADSBController(config)
