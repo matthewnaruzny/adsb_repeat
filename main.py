@@ -15,9 +15,9 @@ class Watchlist:
     def __init__(self, filename="watchlist.txt"):
         self.filename = filename
         self.watchlist = {}
-        self.loadList()
+        self.load_list()
 
-    def loadList(self):
+    def load_list(self):
         if os.path.exists(self.filename):
             with open(self.filename, "r") as f:
                 for line in f.readlines():
@@ -119,18 +119,20 @@ class AWSConnector(MQTTController):
         return myMQTTClient
 
 
-class MQTTController:
+class RemoteMQTTController(MQTTController):
 
-    def __init__(self, config, watchlist):
-        self.config = config['mqtt']
-        self.default_topic = "adsb/" + config.client_name
-        self.watchlist = watchlist
+    def __init__(self, data_config, watchlist):
+        super().__init__(data_config, watchlist)
+        self.mqtt_config = data_config.mqtt
+        self.default_topic = "adsb/" + self.mqtt_config['client_name']
         self.client = self.establish_connection()
 
     def establish_connection(self):
-        m_client = mqtt.Client(client_id=config['client_name'])
-        m_client.username_pw_set(config['username'], config['password'])
-        m_client.connect(config['host'], config['port'], 60)
+        m_client = mqtt.Client(client_id=self.mqtt_config['client_name'])
+        m_client.username_pw_set(self.mqtt_config['username'], self.mqtt_config['password'])
+        m_client.connect(self.mqtt_config['host'], self.mqtt_config['port'], 60)
+        m_client.message_callback = self.mqtt_msg_recv
+        m_client.subscribe(self.default_topic, 0)
 
         return m_client
 
@@ -139,6 +141,9 @@ class MQTTController:
             self.client.publish(topic, payload, qos)
         except Exception:
             print("General Publish Error")
+
+    def mqtt_msg_recv(self, client, userdata, message):
+        self.on_message(message)
 
 
 class ADSBController:
@@ -151,7 +156,7 @@ class ADSBController:
         if config.mode == "aws":
             self.controller = AWSConnector(config, self.watchlist)
         elif config.mode == "mqtt":
-            self.controller = MQTTController(config, self.watchlist)
+            self.controller = RemoteMQTTController(config, self.watchlist)
 
         self.monitor()
 
