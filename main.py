@@ -2,9 +2,12 @@ import os
 import time
 import json
 
-from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
-
 import config
+
+if config.mode == "aws":
+    from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
+elif config.mode == "mqtt":
+    import paho.mqtt.client as mqtt
 
 
 class Watchlist:
@@ -84,7 +87,10 @@ class AWSConnector(MQTTController):
         self.on_message(mqtt_msg)
 
     def publish(self, topic, payload, qos):
-        self.aws_client.publish(topic, payload, qos)
+        try:
+            self.aws_client.publish(topic, payload, qos)
+        except Exception:
+            print("Publish Error")
 
     def establish_connection(self):
         private_path = os.path.abspath(self.aws_config['private_key'])
@@ -113,6 +119,28 @@ class AWSConnector(MQTTController):
         return myMQTTClient
 
 
+class MQTTController:
+
+    def __init__(self, config, watchlist):
+        self.config = config['mqtt']
+        self.default_topic = "adsb/" + config.client_name
+        self.watchlist = watchlist
+        self.client = self.establish_connection()
+
+    def establish_connection(self):
+        m_client = mqtt.Client(client_id=config['client_name'])
+        m_client.username_pw_set(config['username'], config['password'])
+        m_client.connect(config['host'], config['port'], 60)
+
+        return m_client
+
+    def publish(self, topic, payload, qos):
+        try:
+            self.client.publish(topic, payload, qos)
+        except Exception:
+            print("General Publish Error")
+
+
 class ADSBController:
 
     def __init__(self, config):
@@ -122,6 +150,8 @@ class ADSBController:
         # Remote Mode
         if config.mode == "aws":
             self.controller = AWSConnector(config, self.watchlist)
+        elif config.mode == "mqtt":
+            self.controller = MQTTController(config, self.watchlist)
 
         self.monitor()
 
