@@ -153,6 +153,7 @@ class LogFile:
     def write(self, content):
         with open(self.path, "a") as f:
             f.write(content)
+            f.write('\n')
 
     def log(self, title, content):
         timestamp = time.time()
