@@ -146,11 +146,29 @@ class RemoteMQTTController(MQTTController):
         self.on_message(message)
 
 
+class LogFile:
+    def __init__(self, path="log.txt"):
+        self.path = path
+
+    def write(self, content):
+        with open(self.path, "a") as f:
+            f.write(content)
+
+    def log(self, title, content):
+        timestamp = time.time()
+        log_line = "[" + str(timestamp) + '][' + str(title) + '] ' + str(content)
+        self.write(log_line)
+
+    def watchlist(self, icao24, squawk):
+        self.log("ICAOMATCH", str(icao24) + ' ' + str(squawk))
+
+
 class ADSBController:
 
     def __init__(self, config):
         # Load Watchlist
         self.watchlist = Watchlist()
+        self.logger = LogFile()
 
         # Remote Mode
         if config.mode == "aws":
@@ -183,12 +201,18 @@ class ADSBController:
                         aircraft['ALERT_W'] = "WATCHLIST ALERT"
                         aircraft['ALERT_W_DISPLAY'] = self.watchlist.getDisplay(aircraft['hex'])
                         alert = True
+                        if 'squawk' in aircraft:
+                            self.logger.watchlist(aircraft['hex'], aircraft['squawk'])
+                        else:
+                            self.logger.watchlist(aircraft['hex'], str(-1111))
+
                     if 'squawk' in aircraft:
                         squawk = aircraft['squawk']
                         if squawk == '7700' or squawk == '7600' or squawk == '7500':
                             print("SQUAWK ALERT: " + aircraft['hex'] + " " + squawk)
                             aircraft['ALERT_S'] = "SQUAWK ALERT"
                             alert = True
+                            self.logger.watchlist(aircraft['hex'], aircraft['squawk'])
 
                     if alert and aircraft['hex'] not in old_alerts:
                         try:
@@ -202,6 +226,9 @@ class ADSBController:
                     elif alert:
                         alerted.append(aircraft['hex'])
 
+                if old_alerts != alerted:
+                    with open('alerts.txt', 'w') as a_f:
+                        a_f.write(alerted.__str__())
                 old_alerts = alerted
 
             time.sleep(5)
