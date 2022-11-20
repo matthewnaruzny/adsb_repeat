@@ -202,10 +202,6 @@ class ADSBController:
                         aircraft['ALERT_W'] = "WATCHLIST ALERT"
                         aircraft['ALERT_W_DISPLAY'] = self.watchlist.getDisplay(aircraft['hex'])
                         alert = True
-                        if 'squawk' in aircraft:
-                            self.logger.watchlist(aircraft['hex'], aircraft['squawk'])
-                        else:
-                            self.logger.watchlist(aircraft['hex'], str(-1111))
 
                     if 'squawk' in aircraft:
                         squawk = aircraft['squawk']
@@ -213,7 +209,6 @@ class ADSBController:
                             print("SQUAWK ALERT: " + aircraft['hex'] + " " + squawk)
                             aircraft['ALERT_S'] = "SQUAWK ALERT"
                             alert = True
-                            self.logger.watchlist(aircraft['hex'], aircraft['squawk'])
 
                     if alert and aircraft['hex'] not in old_alerts:
                         try:
@@ -221,6 +216,10 @@ class ADSBController:
                             self.controller.publish(self.controller.default_topic + "/tracking/alert",
                                                     str(a_pub_json), 1)
                             alerted.append(aircraft['hex'])
+                            if 'squawk' in aircraft:
+                                self.logger.watchlist(aircraft['hex'], aircraft['squawk'])
+                            else:
+                                self.logger.watchlist(aircraft['hex'], -1111)
 
                         except Exception:
                             print("Alert Publish Error")
