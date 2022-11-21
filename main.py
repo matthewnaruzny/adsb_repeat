@@ -168,6 +168,7 @@ class ADSBController:
 
     def __init__(self, config):
         # Load Watchlist
+        self.a_db = []
         self.watchlist = Watchlist()
         self.logger = LogFile()
 
@@ -177,7 +178,12 @@ class ADSBController:
         elif config.mode == "mqtt":
             self.controller = RemoteMQTTController(config, self.watchlist)
 
+        self.db_load()
         self.monitor()
+
+    def db_load(self):
+        with open('indexedDB_old/aircrafts.json', 'r') as f_db:
+            self.a_db = json.load(f_db)
 
     def monitor(self):
 
@@ -205,7 +211,8 @@ class ADSBController:
                     # Watchlist Check
                     if self.watchlist.contains(aircraft['hex']):
                         print("WATCHLIST ALERT: " + aircraft['hex'])
-                        aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**WATCHLIST ALERT: [" + str(self.watchlist.getDisplay(aircraft['hex'])) + "]**"
+                        aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**WATCHLIST ALERT: [" + str(
+                            self.watchlist.getDisplay(aircraft['hex'])) + "]**"
                         alert = True
 
                     # Special Squawk Check
@@ -213,8 +220,16 @@ class ADSBController:
                         squawk = aircraft['squawk']
                         if squawk == '7700' or squawk == '7600' or squawk == '7500':
                             print("SQUAWK ALERT: " + aircraft['hex'] + " " + squawk)
-                            aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**SQUAWK ALERT: [" + str(aircraft['squawk']) + "]**"
+                            aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**SQUAWK ALERT: [" + str(
+                                aircraft['squawk']) + "]**"
                             alert = True
+
+                    # DB Mil Flag Check
+                    t_a = self.a_db[aircraft['hex']]
+                    flags = t_a['f']
+                    if flags[0] == '1':  # Military Flagged
+                        aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**MILITARY FLAG**"
+                        alert = True
 
                     if alert:
                         with open('alerts.txt', 'a') as a_f:
