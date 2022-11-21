@@ -44,9 +44,11 @@ while True:
                         a_line = "**ADSB Alert**\n"
                         for aircraft in aircrafts:
                             if 'squawk' in aircraft:
-                                t_line = aircraft['hex'] + " " + str(aircraft['squawk']) + " :" + aircraft['ALERT_MSG']
+                                t_line = aircraft['hex'] + " " + str(aircraft['squawk']) + " :" + aircraft['ALERT_MSG'] + "\n"
                             else:
-                                t_line = aircraft['hex'] + " :" + aircraft['ALERT_MSG']
+                                t_line = aircraft['hex'] + " :" + aircraft['ALERT_MSG'] + "\n"
+
+                            a_line = a_line + t_line
 
                         ctypes.windll.user32.MessageBoxW(0, a_line, "ADSB ALERT", 1)
 
