@@ -194,21 +194,31 @@ class ADSBController:
                     print("General Publish Error")
 
                 alerted = []
+                open('alerts.txt', 'w').close()
+
+                # Check for Alerting Aircraft
                 for aircraft in t_aircraft:
                     alert = False
 
+                    aircraft['ALERT_MSG'] = ""
+
+                    # Watchlist Check
                     if self.watchlist.contains(aircraft['hex']):
                         print("WATCHLIST ALERT: " + aircraft['hex'])
-                        aircraft['ALERT_W'] = "WATCHLIST ALERT"
-                        aircraft['ALERT_W_DISPLAY'] = self.watchlist.getDisplay(aircraft['hex'])
+                        aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**WATCHLIST ALERT: [" + str(self.watchlist.getDisplay(aircraft['hex'])) + "]**"
                         alert = True
 
+                    # Special Squawk Check
                     if 'squawk' in aircraft:
                         squawk = aircraft['squawk']
                         if squawk == '7700' or squawk == '7600' or squawk == '7500':
                             print("SQUAWK ALERT: " + aircraft['hex'] + " " + squawk)
-                            aircraft['ALERT_S'] = "SQUAWK ALERT"
+                            aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**SQUAWK ALERT: [" + str(aircraft['squawk']) + "]**"
                             alert = True
+
+                    if alert:
+                        with open('alerts.txt', 'a') as a_f:
+                            a_f.write(json.dumps(aircraft) + '\n')
 
                     if alert and aircraft['hex'] not in old_alerts:
                         try:
@@ -226,10 +236,6 @@ class ADSBController:
                     elif alert:
                         alerted.append(aircraft['hex'])
 
-                if old_alerts != alerted:
-                    with open('alerts.txt', 'w') as a_f:
-                        w_json = json.dumps(alerted)
-                        a_f.write(w_json)
                 old_alerts = alerted
 
             time.sleep(5)

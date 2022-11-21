@@ -29,18 +29,27 @@ while True:
     while True:
         try:
             stdin, stdout, stderr = client.exec_command('cat /home/pi/adsb_upload/adsb_repeat/alerts.txt')
-            line = stdout.readline()
+            lines = stdout.readlines()
             try:
-                alerts = json.loads(line)
-                if old_alert != alerts:
-                    old_alert = alerts
-                    # Create Popup
-                    if len(alerts) > 0:
+                alerted = []
+                aircrafts = []
+                for line in lines:
+                    aircraft = json.loads(line)
+                    alerted.append(aircraft['hex'])
+                    aircrafts.append(aircraft)
+
+                if alerted != old_alert:
+                    old_alert = alerted
+                    if len(alerted) > 0:
                         a_line = "**ADSB Alert**\n"
-                        for a in alerts:
-                            a_line = a_line + str(a) + "\n"
+                        for aircraft in aircrafts:
+                            if 'squawk' in aircraft:
+                                t_line = aircraft['hex'] + " " + str(aircraft['squawk']) + " :" + aircraft['ALERT_MSG']
+                            else:
+                                t_line = aircraft['hex'] + " :" + aircraft['ALERT_MSG']
 
                         ctypes.windll.user32.MessageBoxW(0, a_line, "ADSB ALERT", 1)
+
             except json.decoder.JSONDecodeError:
                 print("Error Reading Data... File could be misplaced or empty")
 
