@@ -5,7 +5,6 @@ import ctypes
 
 from receive_config import r_config
 
-pkey = paramiko.RSAKey.from_private_key_file(r_config['pk_path'])
 
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -13,8 +12,14 @@ client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
 while True:
     try:
-        client.connect(hostname=r_config['hostname'], username=r_config['username'], password=r_config['password'], port=r_config['port'], pkey=pkey,
-                       look_for_keys=False)
+        if 'pk_path' in r_config:
+            pkey = paramiko.RSAKey.from_private_key_file(r_config['pk_path'])
+            client.connect(hostname=r_config['hostname'], username=r_config['username'], password=r_config['password'],
+                           port=r_config['port'], pkey=pkey, look_for_keys=False)
+        else:
+            client.connect(hostname=r_config['hostname'], username=r_config['username'], password=r_config['password'],
+                           port=r_config['port'], look_for_keys=False)
+
     except Exception:
         print("Unable to Connect")
         continue
