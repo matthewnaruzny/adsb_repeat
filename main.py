@@ -228,7 +228,8 @@ class ADSBController:
 
                 if old_alerts != alerted:
                     with open('alerts.txt', 'w') as a_f:
-                        a_f.write(alerted.__str__())
+                        w_json = json.dumps(alerted)
+                        a_f.write(w_json)
                 old_alerts = alerted
 
             time.sleep(5)
