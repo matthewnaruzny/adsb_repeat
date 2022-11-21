@@ -43,10 +43,16 @@ while True:
                     if len(alerted) > 0:
                         a_line = "**ADSB Alert**\n"
                         for aircraft in aircrafts:
-                            if 'squawk' in aircraft:
-                                t_line = aircraft['hex'] + " " + str(aircraft['squawk']) + " :" + aircraft['ALERT_MSG'] + "\n"
+
+                            if 'flight' in aircraft:
+                                t_line = aircraft['flight'] + '  '
                             else:
-                                t_line = aircraft['hex'] + " :" + aircraft['ALERT_MSG'] + "\n"
+                                t_line = ''
+
+                            if 'squawk' in aircraft:
+                                t_line = t_line + aircraft['hex'] + " " + str(aircraft['squawk']) + " :" + aircraft['ALERT_MSG'] + "\n"
+                            else:
+                                t_line = t_line + aircraft['hex'] + " :" + aircraft['ALERT_MSG'] + "\n"
 
                             a_line = a_line + t_line
 
