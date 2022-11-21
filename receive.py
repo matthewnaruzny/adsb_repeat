@@ -24,6 +24,7 @@ while True:
         print("Connected to ADSB Receiver")
     except Exception:
         print("Unable to Connect")
+        time.sleep(5)
         continue
 
     while True:
