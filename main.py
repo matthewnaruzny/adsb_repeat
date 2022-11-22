@@ -200,7 +200,9 @@ class ADSBController:
                     print("General Publish Error")
 
                 alerted = []
-                open('alerts.txt', 'w').close()
+                with open('alerts.txt', 'w') as a_f:
+                    a_f.write(str(time.time()) + '\n')
+                #open('alerts.txt', 'w').close()
 
                 # Check for Alerting Aircraft
                 for aircraft in t_aircraft:

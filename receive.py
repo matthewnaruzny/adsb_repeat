@@ -35,6 +35,13 @@ while True:
             try:
                 alerted = []
                 aircrafts = []
+                update_time = lines[0]
+                lines.pop(0)
+                print(update_time)
+                if abs(update_time-time.time()) > 10:
+                    print("Out of Date")
+                    break
+
                 for line in lines:
                     aircraft = json.loads(line)
                     alerted.append(aircraft['hex'])
@@ -71,4 +78,7 @@ while True:
             break
         except EOFError:
             print("Connection Error")
+            break
+        except paramiko.ssh_exception.SSHException:
+            print("Session Closed. Error")
             break
