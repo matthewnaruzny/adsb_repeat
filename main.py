@@ -225,11 +225,14 @@ class ADSBController:
                             alert = True
 
                     # DB Mil Flag Check
-                    t_a = self.a_db[aircraft['hex']]
-                    flags = t_a['f']
-                    if flags[0] == '1':  # Military Flagged
-                        aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**MILITARY FLAG**"
-                        alert = True
+                    try:
+                        t_a = self.a_db[aircraft['hex'].capitalize()]
+                        flags = t_a['f']
+                        if flags[0] == '1':  # Military Flagged
+                            aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**MILITARY FLAG**"
+                            alert = True
+                    except KeyError:
+                        pass
 
                     if alert:
                         with open('alerts.txt', 'a') as a_f:
