@@ -35,11 +35,14 @@ while True:
             try:
                 alerted = []
                 aircrafts = []
-                update_time = lines[0]
+                if len(lines) == 0:
+                    print("File Incorrect")
+                    break
+                update_time = float(lines[0])
                 lines.pop(0)
-                print(update_time)
                 if abs(update_time-time.time()) > 10:
-                    print("Out of Date")
+                    print("Out of Date by: " + str(round(abs(update_time-time.time()))) + " seconds.")
+                    print("Disconnecting")
                     break
 
                 for line in lines:
