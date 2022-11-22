@@ -52,13 +52,14 @@ while True:
                                 t_line = ''
 
                             if 'squawk' in aircraft:
-                                t_line = t_line + aircraft['hex'] + " " + str(aircraft['squawk']) + " :" + aircraft['ALERT_MSG'] + "\n"
+                                t_line = t_line + "icao24: " + aircraft['hex'] + " Squawk: " + str(aircraft['squawk']) + " :" + aircraft['ALERT_MSG'] + "\n"
                             else:
-                                t_line = t_line + aircraft['hex'] + " :" + aircraft['ALERT_MSG'] + "\n"
+                                t_line = t_line + "icao24: " + aircraft['hex'] + " :" + aircraft['ALERT_MSG'] + "\n"
 
                             a_line = a_line + t_line
 
                         winsound.Beep(440, 750)
+                        print(a_line)
                         ctypes.windll.user32.MessageBoxW(0, a_line, "ADSB ALERT", 0x1000)
 
             except json.decoder.JSONDecodeError:

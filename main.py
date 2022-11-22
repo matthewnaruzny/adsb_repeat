@@ -236,6 +236,11 @@ class ADSBController:
 
                     if alert:
                         with open('alerts.txt', 'a') as a_f:
+                            # Add DB Record to Alert
+                            try:
+                                aircraft['db-record'] = self.a_db[aircraft['hex'].capitalize()]
+                            except KeyError:
+                                pass
                             a_f.write(json.dumps(aircraft) + '\n')
 
                     if alert and aircraft['hex'] not in old_alerts:
