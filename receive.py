@@ -2,6 +2,7 @@ import time
 import paramiko
 import json
 import ctypes
+import winsound
 
 from receive_config import r_config
 
@@ -57,6 +58,7 @@ while True:
 
                             a_line = a_line + t_line
 
+                        winsound.Beep(440, 750)
                         ctypes.windll.user32.MessageBoxW(0, a_line, "ADSB ALERT", 0x1000)
 
             except json.decoder.JSONDecodeError:
