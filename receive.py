@@ -67,5 +67,8 @@ while True:
 
             time.sleep(5)
         except ConnectionResetError:
-            print("Execution Error")
+            print("Connection Error")
+            break
+        except EOFError:
+            print("Connection Error")
             break
