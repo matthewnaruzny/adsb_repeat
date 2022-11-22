@@ -57,7 +57,7 @@ while True:
 
                             a_line = a_line + t_line
 
-                        ctypes.windll.user32.MessageBoxW(0, a_line, "ADSB ALERT", 1)
+                        ctypes.windll.user32.MessageBoxW(0, a_line, "ADSB ALERT", 0x40000)
 
             except json.decoder.JSONDecodeError:
                 print("Error Reading Data... File could be misplaced or empty")
