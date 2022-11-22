@@ -226,7 +226,7 @@ class ADSBController:
 
                     # DB Mil Flag Check
                     try:
-                        t_a = self.a_db[aircraft['hex'].capitalize()]
+                        t_a = self.a_db[aircraft['hex'].upper()]
                         flags = t_a['f']
                         if flags[0] == '1':  # Military Flagged
                             aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**MILITARY FLAG**"
@@ -238,7 +238,7 @@ class ADSBController:
                         with open('alerts.txt', 'a') as a_f:
                             # Add DB Record to Alert
                             try:
-                                aircraft['db-record'] = self.a_db[aircraft['hex'].capitalize()]
+                                aircraft['db-record'] = self.a_db[aircraft['hex'].upper()]
                             except KeyError:
                                 pass
                             a_f.write(json.dumps(aircraft) + '\n')
