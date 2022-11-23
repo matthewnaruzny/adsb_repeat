@@ -206,7 +206,9 @@ class ADSBController:
         elif config.mode == "mqtt":
             self.controller = RemoteMQTTController(config, self.watchlist)
 
+        print("Loading Database...")
         self.db_load()
+        print("Database Loaded")
         self.monitor()
 
     def db_load(self):
@@ -240,7 +242,7 @@ class ADSBController:
                     aircraft['ALERT_MSG'] = ""
 
                     # Watchlist Check
-                    if self.watchlist.contains(aircraft['hex'], self.a_db[aircraft['hex']]):
+                    if self.watchlist.match_check(aircraft['hex'], self.a_db[aircraft['hex']]):
                         print("WATCHLIST ALERT: " + aircraft['hex'])
                         aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**WATCHLIST ALERT: [" + str(
                             self.watchlist.get_display(aircraft['hex'], self.a_db[aircraft['hex']])) + "]**"
