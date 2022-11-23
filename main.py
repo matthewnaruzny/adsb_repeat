@@ -12,65 +12,93 @@ elif config.mode == "mqtt":
 
 class Watchlist:
 
-    def __init__(self, filename="watchlist.txt"):
+    def __init__(self, filename="watchlist.json"):
         self.filename = filename
-        self.watchlist = {}
+        self.watchlist = []
         self.load_list()
 
-    def load_list(self):
+    def load_list(self):  # Load or create new empty file if it doesn't exist
         if os.path.exists(self.filename):
             with open(self.filename, "r") as f:
-                for line in f.readlines():
-                    ls = line.strip().lower().split()
-                    self.watchlist[ls[0]] = ls[1]
+                self.watchlist = json.load(f)
+        else:
+            with open(self.filename, "w") as f:
+                f.write(json.dumps(self.watchlist))
 
-    def add(self, icao24, display_message):
-        icao24 = icao24.lower()
-        if icao24 in self.watchlist.keys():
+    def add_object(self, obj):
+        self.watchlist.append(obj)
+        with open(self.filename, "w") as f:
+            f.write(json.dumps(self.watchlist))
+
+    def add(self, field, item, display_message):
+        assert isinstance(field, str)
+        assert isinstance(item, str)
+        item = item.upper()
+        x = {field: item, 'display_msg': display_message}
+        self.add_object(x)
+
+    def remove(self, field, item):
+        if self.list_contains(field, item):
+            for i in range(len(self.watchlist)):
+                x = self.watchlist[i]
+                if field in x:
+                    if x[field] == item:
+                        self.watchlist.pop(i)
+                        return
+        else:
             return False
 
-        self.watchlist[icao24] = display_message
-        print("Adding " + str(icao24) + " to watchlist.")
-        with open(self.filename, "a") as watchlist_file:
-            watchlist_file.write(str(icao24) + ' ' + str(display_message) + '\n')
-        return True
+    def find(self, icao24, a_db):  # Retrieves Watchlist Item
+        assert isinstance(icao24, str)
+        icao24 = icao24.upper()
+        for i in self.watchlist:
+            if 'icao24' in i:
+                if i['icao24'] == icao24:
+                    return i
+            if 'mark' in i:
+                if i['mark'] == a_db['r']:
+                    return i
 
-    def remove(self, icao24):
-        icao24 = icao24.lower()
-        if icao24 not in self.watchlist.keys():
-            return False
+        return False
 
-        self.watchlist.pop(icao24)
-        print("Removing " + str(icao24) + " from watchlist.")
-        with open(self.filename, "r") as watchlist_file:
-            watched_lines = watchlist_file.readlines()
-        with open(self.filename, "w") as watchlist_file:
-            for line in watched_lines:
-                if line.strip("\n").split()[0] != icao24:
-                    watchlist_file.write(line)
-        return True
+    def get_display(self, icao24, a_db):
+        return self.find(icao24, a_db)['display_msg']
 
-    def contains(self, icao24):
-        return icao24 in self.watchlist.keys()
+    def list_contains(self, field, item):
+        assert isinstance(field, str)
+        assert isinstance(item, str)
+        item = item.upper()
+        for o in self.watchlist:
+            if field in o:
+                if o[field] == item:
+                    return True
+        return False
 
-    def getDisplay(self, icao24):
-        return self.watchlist[icao24]
+    def match_check(self, icao24, a_db):
+        if self.list_contains('icao24', icao24):  # Check Provided icao24 (hex)
+            return True
+
+        if self.list_contains('mark', a_db['r']):  # Check Database Registration Mark
+            return True
+
+        return False
 
 
 class MQTTController:
 
     def __init__(self, data_config, watchlist):
+        assert isinstance(watchlist, Watchlist)
         self.data_config = data_config
         self.watchlist = watchlist
 
     def on_message(self, payload):
         if payload.split()[0] == "watch_add":
-            icao24 = payload.split()[1].strip().lower()
+            icao24 = payload.split()[1].strip()
             id_msg = payload.split()[2].strip()
-            self.watchlist.add(icao24, id_msg)
+            self.watchlist.add('icao24', icao24, id_msg)
         if payload.split()[0] == "watch_remove":
             icao24 = payload.split()[1].strip()
-            self.watchlist.remove(icao24)
+            self.watchlist.remove('icao24', icao24)
 
 
 class AWSConnector(MQTTController):
@@ -174,11 +202,19 @@ class ADSBController:
 
         # Remote Mode
         if config.mode == "aws":
+            self.c_enabled = True
             self.controller = AWSConnector(config, self.watchlist)
         elif config.mode == "mqtt":
+            self.c_enabled = True
             self.controller = RemoteMQTTController(config, self.watchlist)
+        else:
+            print("MQTT Remote Disabled")
+            self.c_enabled = False
 
+
+        print("Loading Database...")
         self.db_load()
+        print("Database Loaded")
         self.monitor()
 
     def db_load(self):
@@ -188,33 +224,35 @@ class ADSBController:
     def monitor(self):
 
         old_alerts = []
-
+        print("Starting Monitor")
         while True:
             with open("/run/dump1090-mutability/aircraft.json", "r") as f:
                 a = json.load(f)
                 t_aircraft = a['aircraft']
-                try:
-                    a_pub_json = json.dumps(t_aircraft)
-                    self.controller.publish(self.controller.default_topic + "/tracking", str(a_pub_json), 1)
-                except Exception:
-                    print("General Publish Error")
+                if self.c_enabled:
+                    try:
+                        a_pub_json = json.dumps(t_aircraft)
+                        self.controller.publish(self.controller.default_topic + "/tracking", str(a_pub_json), 1)
+                    except Exception:
+                        print("General Publish Error")
 
                 alerted = []
                 with open('alerts.txt', 'w') as a_f:
                     a_f.write(str(time.time()) + '\n')
-                #open('alerts.txt', 'w').close()
+                # open('alerts.txt', 'w').close()
 
                 # Check for Alerting Aircraft
                 for aircraft in t_aircraft:
                     alert = False
+                    aircraft['hex'] = aircraft['hex'].upper()
 
                     aircraft['ALERT_MSG'] = ""
 
                     # Watchlist Check
-                    if self.watchlist.contains(aircraft['hex']):
+                    if self.watchlist.match_check(aircraft['hex'], self.a_db[aircraft['hex']]):
                         print("WATCHLIST ALERT: " + aircraft['hex'])
                         aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**WATCHLIST ALERT: [" + str(
-                            self.watchlist.getDisplay(aircraft['hex'])) + "]**"
+                            self.watchlist.get_display(aircraft['hex'], self.a_db[aircraft['hex']])) + "]**"
                         alert = True
 
                     # Special Squawk Check
@@ -248,8 +286,9 @@ class ADSBController:
                     if alert and aircraft['hex'] not in old_alerts:
                         try:
                             a_pub_json = json.dumps(aircraft)
-                            self.controller.publish(self.controller.default_topic + "/tracking/alert",
-                                                    str(a_pub_json), 1)
+                            if self.c_enabled:
+                                self.controller.publish(self.controller.default_topic + "/tracking/alert",
+                                                        str(a_pub_json), 1)
                             alerted.append(aircraft['hex'])
                             if 'squawk' in aircraft:
                                 self.logger.watchlist(aircraft['hex'], aircraft['squawk'])
