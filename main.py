@@ -74,8 +74,8 @@ class Watchlist:
                     return True
         return False
 
-    def match_check(self, a, a_db):
-        if self.list_contains('icao24', a['hex']):  # Check Provided icao24 (hex)
+    def match_check(self, icao24, a_db):
+        if self.list_contains('icao24', icao24):  # Check Provided icao24 (hex)
             return True
 
         if self.list_contains('mark', a_db['r']):  # Check Database Registration Mark
