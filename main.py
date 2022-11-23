@@ -207,9 +207,10 @@ class ADSBController:
         elif config.mode == "mqtt":
             self.c_enabled = True
             self.controller = RemoteMQTTController(config, self.watchlist)
-        elif config.mode == "disable":
+        else:
             print("MQTT Remote Disabled")
             self.c_enabled = False
+
 
         print("Loading Database...")
         self.db_load()
