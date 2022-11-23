@@ -202,9 +202,14 @@ class ADSBController:
 
         # Remote Mode
         if config.mode == "aws":
+            self.c_enabled = True
             self.controller = AWSConnector(config, self.watchlist)
         elif config.mode == "mqtt":
+            self.c_enabled = True
             self.controller = RemoteMQTTController(config, self.watchlist)
+        elif config.mode == "disable":
+            print("MQTT Remote Disabled")
+            self.c_enabled = False
 
         print("Loading Database...")
         self.db_load()
@@ -223,11 +228,12 @@ class ADSBController:
             with open("/run/dump1090-mutability/aircraft.json", "r") as f:
                 a = json.load(f)
                 t_aircraft = a['aircraft']
-                try:
-                    a_pub_json = json.dumps(t_aircraft)
-                    self.controller.publish(self.controller.default_topic + "/tracking", str(a_pub_json), 1)
-                except Exception:
-                    print("General Publish Error")
+                if self.c_enabled:
+                    try:
+                        a_pub_json = json.dumps(t_aircraft)
+                        self.controller.publish(self.controller.default_topic + "/tracking", str(a_pub_json), 1)
+                    except Exception:
+                        print("General Publish Error")
 
                 alerted = []
                 with open('alerts.txt', 'w') as a_f:
@@ -279,8 +285,9 @@ class ADSBController:
                     if alert and aircraft['hex'] not in old_alerts:
                         try:
                             a_pub_json = json.dumps(aircraft)
-                            self.controller.publish(self.controller.default_topic + "/tracking/alert",
-                                                    str(a_pub_json), 1)
+                            if self.c_enabled:
+                                self.controller.publish(self.controller.default_topic + "/tracking/alert",
+                                                        str(a_pub_json), 1)
                             alerted.append(aircraft['hex'])
                             if 'squawk' in aircraft:
                                 self.logger.watchlist(aircraft['hex'], aircraft['squawk'])
