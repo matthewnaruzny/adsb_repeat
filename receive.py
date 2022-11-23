@@ -56,8 +56,8 @@ while True:
                         a_line = "**ADSB Alert**\n"
                         for aircraft in aircrafts:
 
-                            if 'flight' in aircraft:
-                                t_line = aircraft['flight'] + '  '
+                            if 'db-record' in aircraft:
+                                t_line = aircraft['db-record']['r'] + '  '
                             else:
                                 t_line = ''
 
