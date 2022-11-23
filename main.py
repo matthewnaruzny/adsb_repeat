@@ -216,7 +216,7 @@ class ADSBController:
     def monitor(self):
 
         old_alerts = []
-
+        print("Starting Monitor")
         while True:
             with open("/run/dump1090-mutability/aircraft.json", "r") as f:
                 a = json.load(f)
