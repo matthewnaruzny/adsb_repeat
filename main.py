@@ -38,7 +38,7 @@ class Watchlist:
         self.add_object(x)
 
     def remove(self, field, item):
-        if self.contains(field, item):
+        if self.list_contains(field, item):
             for i in range(len(self.watchlist)):
                 x = self.watchlist[i]
                 if field in x:
@@ -64,7 +64,7 @@ class Watchlist:
     def get_display(self, icao24, a_db):
         return self.find(icao24, a_db)['display_msg']
 
-    def contains(self, field, item):
+    def list_contains(self, field, item):
         assert isinstance(field, str)
         assert isinstance(item, str)
         item = item.upper()
@@ -75,10 +75,10 @@ class Watchlist:
         return False
 
     def match_check(self, a, a_db):
-        if self.contains('icao24', a['hex']):  # Check Provided icao24 (hex)
+        if self.list_contains('icao24', a['hex']):  # Check Provided icao24 (hex)
             return True
 
-        if self.contains('mark', a_db['r']):  # Check Database Registration Mark
+        if self.list_contains('mark', a_db['r']):  # Check Database Registration Mark
             return True
 
         return False
