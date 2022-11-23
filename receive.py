@@ -24,8 +24,8 @@ while True:
                            port=r_config['port'], look_for_keys=False)
         print("Connected to ADSB Receiver")
     except Exception:
-        print("Unable to Connect")
-        time.sleep(5)
+        print("Unable to Connect. Will retry in 20 seconds.")
+        time.sleep(20)
         continue
 
     while True:
@@ -36,14 +36,17 @@ while True:
                 alerted = []
                 aircrafts = []
                 if len(lines) == 0:
-                    print("File Incorrect")
-                    break
+                    print("File Error. Waiting 20 seconds then will check again.")
+                    time.sleep(20)
+                    continue
                 update_time = float(lines[0])
                 lines.pop(0)
                 if abs(update_time-time.time()) > 10:
-                    print("Out of Date by: " + str(round(abs(update_time-time.time()))) + " seconds.")
-                    print("Disconnecting")
-                    break
+                    print("Out of Date by: " + str(round(abs(update_time-time.time()))) + "seconds. Waiting 20 "
+                                                                                          "seconds then will check "
+                                                                                          "again.")
+                    time.sleep(20)
+                    continue
 
                 for line in lines:
                     aircraft = json.loads(line)
@@ -76,8 +79,8 @@ while True:
                 print("Error Reading Data... File could be misplaced or empty")
 
             time.sleep(5)
-        except ConnectionResetError:
-            print("Connection Error")
+        except ConnectionResetError: # Network Disconnect
+            print("Connection Error. Connection Closed")
             break
         except EOFError:
             print("Connection Error")
