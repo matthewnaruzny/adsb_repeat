@@ -235,6 +235,7 @@ class ADSBController:
                 # Check for Alerting Aircraft
                 for aircraft in t_aircraft:
                     alert = False
+                    aircraft['hex'] = aircraft['hex'].upper()
 
                     aircraft['ALERT_MSG'] = ""
 
