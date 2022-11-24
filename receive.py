@@ -12,6 +12,7 @@ client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 old_alert = []
 
 print("**ADSB Remote Receiver**")
+fault_state = False
 
 while True:
     try:
@@ -25,6 +26,7 @@ while True:
         print("Connected to ADSB Receiver")
     except Exception:
         print("Unable to Connect. Will retry in 20 seconds.")
+        fault_state = True
         time.sleep(20)
         continue
 
@@ -37,6 +39,7 @@ while True:
                 aircrafts = []
                 if len(lines) == 0:
                     print("File Error. Waiting 20 seconds then will check again.")
+                    fault_state = True
                     time.sleep(20)
                     continue
                 update_time = float(lines[0])
@@ -45,6 +48,7 @@ while True:
                     print("Out of Date by: " + str(round(abs(update_time-time.time()))) + "seconds. Waiting 20 "
                                                                                           "seconds then will check "
                                                                                           "again.")
+                    fault_state = True
                     time.sleep(20)
                     continue
 
@@ -52,6 +56,10 @@ while True:
                     aircraft = json.loads(line)
                     alerted.append(aircraft['hex'])
                     aircrafts.append(aircraft)
+
+                if fault_state:
+                    fault_state = False
+                    print("Fault Cleared")
 
                 if alerted != old_alert:
                     old_alert = alerted
@@ -77,14 +85,18 @@ while True:
 
             except json.decoder.JSONDecodeError:
                 print("Error Reading Data... File could be misplaced or empty")
+                fault_state = True
 
             time.sleep(5)
         except ConnectionResetError: # Network Disconnect
             print("Connection Error. Connection Closed")
+            fault_state = True
             break
         except EOFError:
             print("Connection Error")
+            fault_state = True
             break
         except paramiko.ssh_exception.SSHException:
             print("Session Closed. Error")
+            fault_state = True
             break
