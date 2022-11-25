@@ -188,8 +188,8 @@ class LogFile:
         log_line = "[" + str(timestamp) + '][' + str(title) + '] ' + str(content)
         self.write(log_line)
 
-    def watchlist(self, icao24, squawk):
-        self.log("ICAOMATCH", str(icao24) + ' ' + str(squawk))
+    def watchlist(self, a, a_db):
+        self.log("ALERT", str(a['hex']) + ' ' + a_db['r'] + ' ' + a['ALERT_MSG'])
 
 
 class ADSBController:
@@ -210,7 +210,6 @@ class ADSBController:
         else:
             print("MQTT Remote Disabled")
             self.c_enabled = False
-
 
         print("Loading Database...")
         self.db_load()
@@ -290,10 +289,9 @@ class ADSBController:
                                 self.controller.publish(self.controller.default_topic + "/tracking/alert",
                                                         str(a_pub_json), 1)
                             alerted.append(aircraft['hex'])
-                            if 'squawk' in aircraft:
-                                self.logger.watchlist(aircraft['hex'], aircraft['squawk'])
-                            else:
-                                self.logger.watchlist(aircraft['hex'], -1111)
+
+                            self.logger.watchlist(aircraft, self.a_db[aircraft['hex'].upper()])
+
 
                         except Exception:
                             print("Alert Publish Error")
