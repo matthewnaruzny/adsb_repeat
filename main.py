@@ -12,10 +12,11 @@ elif config.mode == "mqtt":
 
 class Watchlist:
 
-    def __init__(self, filename="watchlist.json"):
+    def __init__(self, filename="watchlist.json", aircraft_database=None):
         self.filename = filename
         self.watchlist = []
         self.load_list()
+        self.aircraft_database = aircraft_database
 
     def load_list(self):  # Load or create new empty file if it doesn't exist
         if os.path.exists(self.filename):
@@ -48,21 +49,30 @@ class Watchlist:
         else:
             return False
 
-    def find(self, icao24, a_db):  # Retrieves Watchlist Item
+    def find(self, icao24):  # Retrieves Watchlist Item
         assert isinstance(icao24, str)
         icao24 = icao24.upper()
+
         for i in self.watchlist:
             if 'icao24' in i:
                 if i['icao24'] == icao24:
                     return i
-            if 'mark' in i:
-                if i['mark'] == a_db['r']:
-                    return i
+
+        try:
+            a_db = self.aircraft_database[icao24]
+
+            for i in self.watchlist:
+                if 'mark' in i:
+                    if i['mark'] == a_db['r']:
+                        return i
+
+        except KeyError:
+            pass
 
         return False
 
-    def get_display(self, icao24, a_db):
-        return self.find(icao24, a_db)['display_msg']
+    def get_display(self, icao24):
+        return self.find(icao24)['display_msg']
 
     def list_contains(self, field, item):
         assert isinstance(field, str)
@@ -74,12 +84,16 @@ class Watchlist:
                     return True
         return False
 
-    def match_check(self, icao24, a_db):
+    def match_check(self, icao24):
         if self.list_contains('icao24', icao24):  # Check Provided icao24 (hex)
             return True
 
-        if self.list_contains('mark', a_db['r']):  # Check Database Registration Mark
-            return True
+        try:
+            a_db = self.aircraft_database[icao24]
+            if self.list_contains('mark', a_db['r']):  # Check Database Registration Mark
+                return True
+        except KeyError:
+            pass
 
         return False
 
@@ -188,8 +202,11 @@ class LogFile:
         log_line = "[" + str(timestamp) + '][' + str(title) + '] ' + str(content)
         self.write(log_line)
 
-    def watchlist(self, a, a_db):
-        self.log("ALERT", str(a['hex']) + ' ' + a_db['r'] + ' ' + a['ALERT_MSG'])
+    def watchlist(self, a, a_db=None):
+        if a_db is not None:
+            self.log("ALERT", str(a['hex']) + ' ' + a_db['r'] + ' ' + a['ALERT_MSG'])
+        else:
+            self.log("ALERT", str(a['hex']) + ' ' + a['ALERT_MSG'])
 
 
 class ADSBController:
@@ -248,10 +265,10 @@ class ADSBController:
                     aircraft['ALERT_MSG'] = ""
 
                     # Watchlist Check
-                    if self.watchlist.match_check(aircraft['hex'], self.a_db[aircraft['hex']]):
+                    if self.watchlist.match_check(aircraft['hex']):
                         print("WATCHLIST ALERT: " + aircraft['hex'])
                         aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**WATCHLIST ALERT: [" + str(
-                            self.watchlist.get_display(aircraft['hex'], self.a_db[aircraft['hex']])) + "]**"
+                            self.watchlist.get_display(aircraft['hex'])) + "]**"
                         alert = True
 
                     # Special Squawk Check
@@ -289,8 +306,10 @@ class ADSBController:
                                 self.controller.publish(self.controller.default_topic + "/tracking/alert",
                                                         str(a_pub_json), 1)
                             alerted.append(aircraft['hex'])
-
-                            self.logger.watchlist(aircraft, self.a_db[aircraft['hex'].upper()])
+                            try:
+                                self.logger.watchlist(aircraft, self.a_db[aircraft['hex'].upper()])
+                            except KeyError:
+                                self.logger.watchlist(aircraft)
 
 
                         except Exception:
