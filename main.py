@@ -201,7 +201,7 @@ class ADSBController:
         print("Database Loaded")
         self.a_db = []
         print("Loading Watchlist...")
-        self.watchlist = Watchlist(aircraft_database=self.a_db)
+        self.watchlist = Watchlist()
         print("Watchlist Loaded")
         self.logger = LogFile()
 
