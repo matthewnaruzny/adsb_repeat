@@ -11,13 +11,44 @@ elif config.mode == "mqtt":
 
 
 class Watchlist:
+    """
+    Contains and manages a watchlist of aircraft and a database of aircraft information
+    """
 
-    def __init__(self, filename="watchlist.json"):
+    def __init__(self, filename="watchlist.json", db_path='indexedDB_old/aircrafts.json'):
         self.filename = filename
         self.watchlist = []
         self.load_list()
 
-    def load_list(self):  # Load or create new empty file if it doesn't exist
+        print("Loading Database...")
+        self.db_path = db_path
+        self.a_db = []
+        self.db_load()
+        print("Database Loaded")
+
+    def db_load(self):
+        """
+        Loads aircraft database into memory. Required before retrieving records
+        """
+        with open(self.db_path, 'r') as f_db:
+            self.a_db = json.load(f_db)
+
+    def db_get(self, icao24):
+        """
+        Returns database record for the given icao24
+        :param icao24: icao24 to search for in the database
+        :return: Returns the database record for the icao24 if found. If not found, returns None.
+        """
+        icao24 = icao24.upper()
+        if icao24 in self.a_db:
+            return self.a_db[icao24]
+
+        return None
+
+    def load_list(self):
+        """
+        Loads watchlist from file into memory
+        """
         if os.path.exists(self.filename):
             with open(self.filename, "r") as f:
                 self.watchlist = json.load(f)
@@ -48,21 +79,22 @@ class Watchlist:
         else:
             return False
 
-    def find(self, icao24, a_db):  # Retrieves Watchlist Item
+    def find(self, icao24):  # Retrieves Watchlist Item
         assert isinstance(icao24, str)
         icao24 = icao24.upper()
+        a_record = self.db_get(icao24)
         for i in self.watchlist:
             if 'icao24' in i:
                 if i['icao24'] == icao24:
                     return i
-            if 'mark' in i:
-                if i['mark'] == a_db['r']:
+            if 'mark' in i and a_record is not None:
+                if i['mark'] == a_record['r']:
                     return i
 
         return False
 
-    def get_display(self, icao24, a_db):
-        return self.find(icao24, a_db)['display_msg']
+    def get_display(self, icao24):
+        return self.find(icao24)['display_msg']
 
     def list_contains(self, field, item):
         assert isinstance(field, str)
@@ -74,12 +106,14 @@ class Watchlist:
                     return True
         return False
 
-    def match_check(self, icao24, a_db):
+    def match_check(self, icao24):
         if self.list_contains('icao24', icao24):  # Check Provided icao24 (hex)
             return True
 
-        if self.list_contains('mark', a_db['r']):  # Check Database Registration Mark
-            return True
+        a_record = self.db_get(icao24)
+        if a_record is not None:
+            if self.list_contains('mark', a_record['r']):  # Check Database Registration Mark
+                return True
 
         return False
 
@@ -188,21 +222,21 @@ class LogFile:
         log_line = "[" + str(timestamp) + '][' + str(title) + '] ' + str(content)
         self.write(log_line)
 
-    def watchlist(self, a, a_db):
-        self.log("ALERT", str(a['hex']) + ' ' + a_db['r'] + ' ' + a['ALERT_MSG'])
+    def watchlist(self, a, a_record=None):
+        if a_record is not None:
+            self.log("ALERT", str(a['hex']) + ' ' + a_record['r'] + ' ' + a['ALERT_MSG'])
+        else:
+            self.log("ALERT", str(a['hex']) + ' ' + a['ALERT_MSG'])
 
 
 class ADSBController:
 
     def __init__(self, config):
-        # Load Watchlist and Database
-        print("Loading Database...")
-        self.db_load()
-        print("Database Loaded")
-        self.a_db = []
+        # Load Watchlist
         print("Loading Watchlist...")
         self.watchlist = Watchlist()
         print("Watchlist Loaded")
+
         self.logger = LogFile()
 
         # Remote Mode
@@ -219,10 +253,6 @@ class ADSBController:
             self.c_enabled = False
 
         self.monitor()
-
-    def db_load(self):
-        with open('indexedDB_old/aircrafts.json', 'r') as f_db:
-            self.a_db = json.load(f_db)
 
     def monitor(self):
 
@@ -252,10 +282,10 @@ class ADSBController:
                     aircraft['ALERT_MSG'] = ""
 
                     # Watchlist Check
-                    if self.watchlist.match_check(aircraft['hex'], self.a_db[aircraft['hex']]):
+                    if self.watchlist.match_check(aircraft['hex']):
                         print("WATCHLIST ALERT: " + aircraft['hex'])
                         aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**WATCHLIST ALERT: [" + str(
-                            self.watchlist.get_display(aircraft['hex'], self.a_db[aircraft['hex']])) + "]**"
+                            self.watchlist.get_display(aircraft['hex'])) + "]**"
                         alert = True
 
                     # Special Squawk Check
@@ -269,11 +299,12 @@ class ADSBController:
 
                     # DB Mil Flag Check
                     try:
-                        t_a = self.a_db[aircraft['hex'].upper()]
-                        flags = t_a['f']
-                        if flags[0] == '1':  # Military Flagged
-                            aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**MILITARY FLAG**"
-                            alert = True
+                        a_record = self.watchlist.db_get(aircraft['hex'])
+                        if a_record is not None:
+                            flags = a_record['f']
+                            if flags[0] == '1':  # Military Flagged
+                                aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**MILITARY FLAG**"
+                                alert = True
                     except KeyError:
                         pass
 
@@ -281,7 +312,9 @@ class ADSBController:
                         with open('alerts.txt', 'a') as a_f:
                             # Add DB Record to Alert
                             try:
-                                aircraft['db-record'] = self.a_db[aircraft['hex'].upper()]
+                                a_record = self.watchlist.db_get(aircraft['hex'])
+                                if a_record is not None:
+                                    aircraft['db-record'] = a_record
                             except KeyError:
                                 pass
                             a_f.write(json.dumps(aircraft) + '\n')
@@ -294,7 +327,11 @@ class ADSBController:
                                                         str(a_pub_json), 1)
                             alerted.append(aircraft['hex'])
 
-                            self.logger.watchlist(aircraft, self.a_db[aircraft['hex'].upper()])
+                            a_record = self.watchlist.get_display(aircraft['hex'])
+                            if a_record is not None:
+                                self.logger.watchlist(aircraft, a_record)
+                            else:
+                                self.logger.watchlist(aircraft)
 
 
                         except Exception:
