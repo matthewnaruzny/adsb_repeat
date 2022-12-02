@@ -212,25 +212,29 @@ class LogFile:
 class ADSBController:
 
     def __init__(self, config):
-        # Load Watchlist
+        # Load Watchlist and Database
+        print("Loading Database...")
+        self.db_load()
+        print("Database Loaded")
         self.a_db = []
-        self.watchlist = Watchlist()
+        print("Loading Watchlist...")
+        self.watchlist = Watchlist(aircraft_database=self.a_db)
+        print("Watchlist Loaded")
         self.logger = LogFile()
 
         # Remote Mode
         if config.mode == "aws":
+            print("AWS Connection")
             self.c_enabled = True
             self.controller = AWSConnector(config, self.watchlist)
         elif config.mode == "mqtt":
+            print("MQTT Connection")
             self.c_enabled = True
             self.controller = RemoteMQTTController(config, self.watchlist)
         else:
             print("MQTT Remote Disabled")
             self.c_enabled = False
 
-        print("Loading Database...")
-        self.db_load()
-        print("Database Loaded")
         self.monitor()
 
     def db_load(self):
