@@ -344,4 +344,5 @@ class ADSBController:
             time.sleep(5)
 
 
-client = ADSBController(config)
+if __name__ == "__main__":
+    client = ADSBController(config)
