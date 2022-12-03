@@ -79,7 +79,12 @@ class Watchlist:
         else:
             return False
 
-    def find(self, icao24):  # Retrieves Watchlist Item
+    def find(self, icao24):
+        """
+        Finds whitelist record for aircraft by searching for it's icao24
+        :param icao24: icao24 of aircraft
+        :return: Returns whitelist record if found, otherwise returns False
+        """
         assert isinstance(icao24, str)
         icao24 = icao24.upper()
         a_record = self.db_get(icao24)
@@ -97,6 +102,12 @@ class Watchlist:
         return self.find(icao24)['display_msg']
 
     def list_contains(self, field, item):
+        """
+        Check if specified aircraft is listed in the watchlist. Search by any field and value
+        :param field: Field to search
+        :param item: Value of field to search
+        :return: Returns True if found, otherwise returns False
+        """
         assert isinstance(field, str)
         assert isinstance(item, str)
         item = item.upper()
@@ -107,6 +118,11 @@ class Watchlist:
         return False
 
     def match_check(self, icao24):
+        """
+        Check if specified aircraft is listed in the watchlist. Search by ICAO24
+        :param icao24: ICAO24 of aircraft to check
+        :return: Returns True if aircraft is on list, otherwise returns False
+        """
         if self.list_contains('icao24', icao24):  # Check Provided icao24 (hex)
             return True
 
@@ -332,7 +348,6 @@ class ADSBController:
                                 self.logger.watchlist(aircraft, a_record)
                             else:
                                 self.logger.watchlist(aircraft)
-
 
                         except Exception:
                             print("Alert Publish Error")
