@@ -1,2 +1,1 @@
-venv\Scripts\activate.bat
-python receive.py
+venv\Scripts\activate.bat & python receive.py
