@@ -1,3 +1,4 @@
+import argparse
 import os
 import time
 import json
@@ -15,16 +16,19 @@ class Watchlist:
     Contains and manages a watchlist of aircraft and a database of aircraft information
     """
 
-    def __init__(self, filename="watchlist.json", db_path='indexedDB_old/aircrafts.json'):
+    def __init__(self, filename="watchlist.json", db_path='indexedDB_old/aircrafts.json', db_skip=False):
         self.filename = filename
         self.watchlist = []
         self.load_list()
 
-        print("Loading Database...")
-        self.db_path = db_path
-        self.a_db = []
-        self.db_load()
-        print("Database Loaded")
+        if not db_skip:
+            print("Loading Database...")
+            self.db_path = db_path
+            self.a_db = []
+            self.db_load()
+            print("Database Loaded")
+        else:
+            print("Skipping database loading.")
 
     def db_load(self):
         """
@@ -231,10 +235,10 @@ class LogFile:
 
 class ADSBController:
 
-    def __init__(self, config):
+    def __init__(self, config, db_skip=False):
         # Load Watchlist
         print("Loading Watchlist...")
-        self.watchlist = Watchlist()
+        self.watchlist = Watchlist(db_skip=db_skip)
         print("Watchlist Loaded")
 
         self.logger = LogFile()
@@ -348,4 +352,8 @@ class ADSBController:
 
 
 if __name__ == "__main__":
-    client = ADSBController(config)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--fast_load', action='store_true', ) # Flag for fast load
+    args = parser.parse_args()
+    print(args.fast_load)
+    client = ADSBController(config, db_skip=args.fast_load)
