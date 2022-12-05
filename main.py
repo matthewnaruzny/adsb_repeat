@@ -361,5 +361,4 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--fast_load', action='store_true', ) # Flag for fast load
     args = parser.parse_args()
-    print(args.fast_load)
     client = ADSBController(config, db_skip=args.fast_load)
