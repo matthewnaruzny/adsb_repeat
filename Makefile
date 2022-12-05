@@ -4,3 +4,7 @@ run:
 test:
 	git pull
 	python3 main.py
+
+ftest:
+    git pull
+    python3 main.py -f
