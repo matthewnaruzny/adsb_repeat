@@ -233,6 +233,9 @@ class LogFile:
         else:
             self.log("ALERT", str(a['hex']) + ' ' + a['ALERT_MSG'])
 
+    def error(self, error_msg):
+        self.log("ERROR", error_msg)
+
 
 class ADSBController:
 
@@ -275,7 +278,8 @@ class ADSBController:
                         a_pub_json = json.dumps(t_aircraft)
                         self.controller.publish(self.controller.default_topic + "/tracking", str(a_pub_json), 1)
                     except Exception:
-                        print("General Publish Error")
+                        print("Current Aircraft Publish Error")
+                        self.logger.error("Current Aircraft Publish Error")
 
                 alerted = []
                 with open('alerts.txt', 'w') as a_f:
@@ -344,6 +348,7 @@ class ADSBController:
 
                         except Exception:
                             print("Alert Publish Error")
+                            self.logger.error("Alert Publish Error")
                     elif alert:
                         alerted.append(aircraft['hex'])
 
