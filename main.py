@@ -29,6 +29,7 @@ class Watchlist:
             print("Database Loaded")
         else:
             print("Skipping database loading.")
+            self.a_db = []
 
     def db_load(self):
         """
