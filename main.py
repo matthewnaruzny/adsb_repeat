@@ -193,6 +193,7 @@ class RemoteMQTTController(MQTTController):
         self.mqtt_config = data_config.mqtt
         self.default_topic = "adsb/" + self.mqtt_config['client_name']
         self.client = self.establish_connection()
+        self.client.loop_start()
 
     def establish_connection(self):
         m_client = mqtt.Client(client_id=self.mqtt_config['client_name'])
@@ -200,7 +201,6 @@ class RemoteMQTTController(MQTTController):
         m_client.connect(self.mqtt_config['host'], self.mqtt_config['port'], 60)
         m_client.message_callback = self.mqtt_msg_recv
         m_client.subscribe(self.default_topic, 0)
-
         return m_client
 
     def publish(self, topic, payload, qos):
