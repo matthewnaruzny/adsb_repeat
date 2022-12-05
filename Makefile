@@ -6,5 +6,5 @@ test:
 	python3 main.py
 
 ftest:
-    git pull
-    python3 main.py -f
+	git pull
+	python3 main.py -f
