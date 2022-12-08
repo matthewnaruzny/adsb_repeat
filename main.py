@@ -1,5 +1,6 @@
 import argparse
 import os
+import subprocess
 import time
 import json
 
@@ -20,6 +21,7 @@ class Watchlist:
         self.filename = filename
         self.watchlist = []
         self.load_list()
+        self.db_skip = db_skip
 
         if not db_skip:
             print("Loading Database...")
@@ -31,12 +33,23 @@ class Watchlist:
             print("Skipping database loading.")
             self.a_db = []
 
+    def db_loaded(self):
+        return self.db_skip
     def db_load(self):
         """
         Loads aircraft database into memory. Required before retrieving records
         """
         with open(self.db_path, 'r') as f_db:
             self.a_db = json.load(f_db)
+
+    def db_reload(self):
+        self.a_db = []
+        self.db_load()
+
+    def db_network_update(self):
+        subprocess.run(["sh", "./update_db.sh"])
+        self.db_reload()
+
 
     def db_get(self, icao24):
         """
@@ -130,14 +143,22 @@ class MQTTController:
         self.data_config = data_config
         self.watchlist = watchlist
 
+    def publish(self, topic, payload, qos):
+        pass
+
     def on_message(self, payload):
         if payload.split()[0] == "watch_add":
+            print("Adding to watchlist")
             icao24 = payload.split()[1].strip()
             id_msg = payload.split()[2].strip()
             self.watchlist.add('icao24', icao24, id_msg)
         if payload.split()[0] == "watch_remove":
+            print("Removing from watchlist")
             icao24 = payload.split()[1].strip()
             self.watchlist.remove('icao24', icao24)
+        if payload.split()[0] == "db_update":
+            print("Updating Database")
+            self.watchlist.db_network_update()
 
 
 class AWSConnector(MQTTController):
