@@ -223,7 +223,7 @@ class RemoteMQTTController(MQTTController):
         m_client.username_pw_set(self.mqtt_config['username'], self.mqtt_config['password'])
         m_client.connect(self.mqtt_config['host'], self.mqtt_config['port'], 60)
 
-        m_client.subscribe_callback = self.mqtt_msg_recv
+        m_client.on_message = self.mqtt_msg_recv
         m_client.subscribe(self.default_topic, 0)
         return m_client
 
@@ -234,6 +234,7 @@ class RemoteMQTTController(MQTTController):
             print("General Publish Error")
 
     def mqtt_msg_recv(self, client, userdata, message):
+        print("MQTT NEW MSG")
         print(client)
         print(userdata)
         self.on_message(self.default_topic, message)
