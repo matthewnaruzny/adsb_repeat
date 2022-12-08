@@ -146,7 +146,9 @@ class MQTTController:
     def publish(self, topic, payload, qos):
         pass
 
-    def on_message(self, payload):
+    def on_message(self, topic, payload):
+        print("NEW MSG: " + payload)
+        self.publish(topic, "Received", 0)
         if payload.split()[0] == "watch_add":
             print("Adding to watchlist")
             icao24 = payload.split()[1].strip()
@@ -172,7 +174,7 @@ class AWSConnector(MQTTController):
     def aws_msg_recv(self, msg_client, userdata, message, **arg1):
         mqtt_topic = message.topic
         mqtt_msg = message.payload.decode('ASCII')
-        self.on_message(mqtt_msg)
+        self.on_message(mqtt_topic, mqtt_msg)
 
     def publish(self, topic, payload, qos):
         try:
@@ -231,7 +233,9 @@ class RemoteMQTTController(MQTTController):
             print("General Publish Error")
 
     def mqtt_msg_recv(self, client, userdata, message):
-        self.on_message(message)
+        print(client)
+        print(userdata)
+        self.on_message(self.default_topic, message)
 
 
 class LogFile:
