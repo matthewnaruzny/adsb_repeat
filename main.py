@@ -154,12 +154,15 @@ class MQTTController:
             icao24 = payload.split()[1].strip()
             id_msg = payload.split()[2].strip()
             self.watchlist.add('icao24', icao24, id_msg)
+            self.publish(topic, "Adding to watchlist", 0)
         if payload.split()[0] == "watch_remove":
             print("Removing from watchlist")
+            self.publish(topic, "Removing from watchlist", 0)
             icao24 = payload.split()[1].strip()
             self.watchlist.remove('icao24', icao24)
         if payload.split()[0] == "db_update":
             print("Updating Database")
+            self.publish(topic, "Updating Database", 0)
             self.watchlist.db_network_update()
 
 
@@ -237,6 +240,7 @@ class RemoteMQTTController(MQTTController):
         print(message.topic)
         print(message.payload.decode("utf-8"))
         self.on_message(message.topic, message.payload.decode("utf-8"))
+        return
 
 
 class LogFile:
