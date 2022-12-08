@@ -234,10 +234,9 @@ class RemoteMQTTController(MQTTController):
             print("General Publish Error")
 
     def mqtt_msg_recv(self, client, userdata, message):
-        print("MQTT NEW MSG")
-        print(client)
-        print(userdata)
-        self.on_message(self.default_topic, message)
+        print(message.topic)
+        print(message.payload.decode("utf-8"))
+        self.on_message(message.topic, message.payload.decode("utf-8"))
 
 
 class LogFile:
