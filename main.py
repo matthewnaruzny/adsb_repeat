@@ -222,7 +222,8 @@ class RemoteMQTTController(MQTTController):
         m_client = mqtt.Client(client_id=self.mqtt_config['client_name'])
         m_client.username_pw_set(self.mqtt_config['username'], self.mqtt_config['password'])
         m_client.connect(self.mqtt_config['host'], self.mqtt_config['port'], 60)
-        m_client.message_callback = self.mqtt_msg_recv
+
+        m_client.subscribe_callback = self.mqtt_msg_recv
         m_client.subscribe(self.default_topic, 0)
         return m_client
 
@@ -384,6 +385,6 @@ class ADSBController:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--fast_load', action='store_true', ) # Flag for fast load
+    parser.add_argument('-f', '--fast_load', action='store_true') # Flag for fast load
     args = parser.parse_args()
     client = ADSBController(config, db_skip=args.fast_load)
