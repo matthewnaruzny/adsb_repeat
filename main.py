@@ -1,4 +1,6 @@
+import argparse
 import os
+import subprocess
 import time
 import json
 
@@ -15,23 +17,39 @@ class Watchlist:
     Contains and manages a watchlist of aircraft and a database of aircraft information
     """
 
-    def __init__(self, filename="watchlist.json", db_path='indexedDB_old/aircrafts.json'):
+    def __init__(self, filename="watchlist.json", db_path='indexedDB_old/aircrafts.json', db_skip=False):
         self.filename = filename
         self.watchlist = []
         self.load_list()
+        self.db_skip = db_skip
 
-        print("Loading Database...")
-        self.db_path = db_path
-        self.a_db = []
-        self.db_load()
-        print("Database Loaded")
+        if not db_skip:
+            print("Loading Database...")
+            self.db_path = db_path
+            self.a_db = []
+            self.db_load()
+            print("Database Loaded")
+        else:
+            print("Skipping database loading.")
+            self.a_db = []
 
+    def db_loaded(self):
+        return self.db_skip
     def db_load(self):
         """
         Loads aircraft database into memory. Required before retrieving records
         """
         with open(self.db_path, 'r') as f_db:
             self.a_db = json.load(f_db)
+
+    def db_reload(self):
+        self.a_db = []
+        self.db_load()
+
+    def db_network_update(self):
+        subprocess.run(["sh", "./update_db.sh"])
+        self.db_reload()
+
 
     def db_get(self, icao24):
         """
@@ -125,14 +143,27 @@ class MQTTController:
         self.data_config = data_config
         self.watchlist = watchlist
 
-    def on_message(self, payload):
+    def publish(self, topic, payload, qos):
+        pass
+
+    def on_message(self, topic, payload):
         if payload.split()[0] == "watch_add":
+            print("Adding to watchlist")
             icao24 = payload.split()[1].strip()
             id_msg = payload.split()[2].strip()
             self.watchlist.add('icao24', icao24, id_msg)
+            self.publish(topic, "Adding to watchlist", 0)
         if payload.split()[0] == "watch_remove":
+            print("Removing from watchlist")
+            self.publish(topic, "Removing from watchlist", 0)
             icao24 = payload.split()[1].strip()
             self.watchlist.remove('icao24', icao24)
+        if payload.split()[0] == "db_update":
+            print("Updating Database")
+            self.publish(topic, "Updating Database", 0)
+            self.watchlist.db_network_update()
+        if payload.split()[0] == "ping":
+            self.publish(topic, "Pong", 0)
 
 
 class AWSConnector(MQTTController):
@@ -146,7 +177,7 @@ class AWSConnector(MQTTController):
     def aws_msg_recv(self, msg_client, userdata, message, **arg1):
         mqtt_topic = message.topic
         mqtt_msg = message.payload.decode('ASCII')
-        self.on_message(mqtt_msg)
+        self.on_message(mqtt_topic, mqtt_msg)
 
     def publish(self, topic, payload, qos):
         try:
@@ -188,14 +219,15 @@ class RemoteMQTTController(MQTTController):
         self.mqtt_config = data_config.mqtt
         self.default_topic = "adsb/" + self.mqtt_config['client_name']
         self.client = self.establish_connection()
+        self.client.loop_start()
 
     def establish_connection(self):
         m_client = mqtt.Client(client_id=self.mqtt_config['client_name'])
         m_client.username_pw_set(self.mqtt_config['username'], self.mqtt_config['password'])
         m_client.connect(self.mqtt_config['host'], self.mqtt_config['port'], 60)
-        m_client.message_callback = self.mqtt_msg_recv
-        m_client.subscribe(self.default_topic, 0)
 
+        m_client.on_message = self.mqtt_msg_recv
+        m_client.subscribe(self.default_topic, 0)
         return m_client
 
     def publish(self, topic, payload, qos):
@@ -205,7 +237,12 @@ class RemoteMQTTController(MQTTController):
             print("General Publish Error")
 
     def mqtt_msg_recv(self, client, userdata, message):
-        self.on_message(message)
+        print("**MQTT MSG**")
+        print(message.topic)
+        print(message.payload.decode("utf-8"))
+        print("****")
+        self.on_message(message.topic, message.payload.decode("utf-8"))
+        return
 
 
 class LogFile:
@@ -228,13 +265,16 @@ class LogFile:
         else:
             self.log("ALERT", str(a['hex']) + ' ' + a['ALERT_MSG'])
 
+    def error(self, error_msg):
+        self.log("ERROR", error_msg)
+
 
 class ADSBController:
 
-    def __init__(self, config):
+    def __init__(self, config, db_skip=False):
         # Load Watchlist
         print("Loading Watchlist...")
-        self.watchlist = Watchlist()
+        self.watchlist = Watchlist(db_skip=db_skip)
         print("Watchlist Loaded")
 
         self.logger = LogFile()
@@ -259,6 +299,9 @@ class ADSBController:
         old_alerts = []
         print("Starting Monitor")
         while True:
+            if self.c_enabled:
+                self.controller.publish(self.controller.default_topic + "/alive", str(time.time()), 1)
+
             with open("/run/dump1090-mutability/aircraft.json", "r") as f:
                 a = json.load(f)
                 t_aircraft = a['aircraft']
@@ -267,7 +310,8 @@ class ADSBController:
                         a_pub_json = json.dumps(t_aircraft)
                         self.controller.publish(self.controller.default_topic + "/tracking", str(a_pub_json), 1)
                     except Exception:
-                        print("General Publish Error")
+                        print("Current Aircraft Publish Error")
+                        self.logger.error("Current Aircraft Publish Error")
 
                 alerted = []
                 with open('alerts.txt', 'w') as a_f:
@@ -336,6 +380,7 @@ class ADSBController:
 
                         except Exception:
                             print("Alert Publish Error")
+                            self.logger.error("Alert Publish Error")
                     elif alert:
                         alerted.append(aircraft['hex'])
 
@@ -345,4 +390,7 @@ class ADSBController:
 
 
 if __name__ == "__main__":
-    client = ADSBController(config)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--fast_load', action='store_true') # Flag for fast load
+    args = parser.parse_args()
+    client = ADSBController(config, db_skip=args.fast_load)
