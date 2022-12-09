@@ -148,7 +148,6 @@ class MQTTController:
 
     def on_message(self, topic, payload):
         print("NEW MSG: " + payload)
-        self.publish(topic, "Received", 0)
         if payload.split()[0] == "watch_add":
             print("Adding to watchlist")
             icao24 = payload.split()[1].strip()
@@ -240,6 +239,7 @@ class RemoteMQTTController(MQTTController):
 
     def mqtt_msg_recv(self, client, userdata, message):
         print(message.topic)
+        print(client)
         print(message.payload.decode("utf-8"))
         self.on_message(message.topic, message.payload.decode("utf-8"))
         return
