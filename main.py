@@ -147,7 +147,7 @@ class MQTTController:
         pass
 
     def on_message(self, topic, payload):
-        print("NEW MSG: " + payload)
+        print("ADSB NEW REMOTE MSG: " + payload)
         if payload.split()[0] == "watch_add":
             print("Adding to watchlist")
             icao24 = payload.split()[1].strip()
@@ -238,9 +238,10 @@ class RemoteMQTTController(MQTTController):
             print("General Publish Error")
 
     def mqtt_msg_recv(self, client, userdata, message):
+        print("**MQTT MSG**")
         print(message.topic)
-        print(client)
         print(message.payload.decode("utf-8"))
+        print("****")
         self.on_message(message.topic, message.payload.decode("utf-8"))
         return
 
