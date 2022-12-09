@@ -164,6 +164,8 @@ class MQTTController:
             print("Updating Database")
             self.publish(topic, "Updating Database", 0)
             self.watchlist.db_network_update()
+        if payload.split()[0] == "ping":
+            self.publish(topic, "Pong", 0)
 
 
 class AWSConnector(MQTTController):
