@@ -147,7 +147,6 @@ class MQTTController:
         pass
 
     def on_message(self, topic, payload):
-        print("ADSB NEW REMOTE MSG: " + payload)
         if payload.split()[0] == "watch_add":
             print("Adding to watchlist")
             icao24 = payload.split()[1].strip()
