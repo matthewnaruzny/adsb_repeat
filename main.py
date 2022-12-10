@@ -347,21 +347,20 @@ class ADSBController:
                             alert = True
 
                     # DB Mil Flag Check
-                    if aircraft['db-record'] is not None:
-                        flags = aircraft['db-record']['f']
+                    if db_record is not None:
+                        flags = db_record['f']
                         if flags[0] == '1':  # Military Flagged
                             aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**MILITARY FLAG**"
                             alert = True
 
                     if alert:
                         with open('alerts.txt', 'a') as a_f:
-
                             a_f.write(json.dumps(aircraft) + '\n')
 
                     if alert and aircraft['hex'] not in old_alerts:
 
-                        if aircraft['db-record'] is not None:
-                            self.logger.watchlist(aircraft, aircraft['db-record'])
+                        if db_record is not None:
+                            self.logger.watchlist(aircraft, db_record)
                         else:
                             self.logger.watchlist(aircraft)
 
