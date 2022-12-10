@@ -323,6 +323,11 @@ class ADSBController:
                     alert = False
                     aircraft['hex'] = aircraft['hex'].upper()
 
+                    # Get DB Record if it exists and append to aircraft object
+                    db_record = self.watchlist.db_get(aircraft['hex'])
+                    if db_record is not None:
+                        aircraft['db-record'] = db_record
+
                     aircraft['ALERT_MSG'] = ""
 
                     # Watchlist Check
@@ -342,45 +347,35 @@ class ADSBController:
                             alert = True
 
                     # DB Mil Flag Check
-                    try:
-                        a_record = self.watchlist.db_get(aircraft['hex'])
-                        if a_record is not None:
-                            flags = a_record['f']
-                            if flags[0] == '1':  # Military Flagged
-                                aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**MILITARY FLAG**"
-                                alert = True
-                    except KeyError:
-                        pass
+                    if aircraft['db-record'] is not None:
+                        flags = aircraft['db-record']['f']
+                        if flags[0] == '1':  # Military Flagged
+                            aircraft['ALERT_MSG'] = aircraft['ALERT_MSG'] + "**MILITARY FLAG**"
+                            alert = True
 
                     if alert:
                         with open('alerts.txt', 'a') as a_f:
-                            # Add DB Record to Alert
-                            try:
-                                a_record = self.watchlist.db_get(aircraft['hex'])
-                                if a_record is not None:
-                                    aircraft['db-record'] = a_record
-                            except KeyError:
-                                pass
+
                             a_f.write(json.dumps(aircraft) + '\n')
 
                     if alert and aircraft['hex'] not in old_alerts:
-                        try:
-                            a_pub_json = json.dumps(aircraft)
-                            if self.c_enabled:
+
+                        if aircraft['db-record'] is not None:
+                            self.logger.watchlist(aircraft, aircraft['db-record'])
+                        else:
+                            self.logger.watchlist(aircraft)
+
+                        # Publish MQTT Alert
+                        if self.c_enabled:
+                            try:
                                 self.controller.publish(self.controller.default_topic + "/tracking/alert",
                                                         str(a_pub_json), 1)
-                            alerted.append(aircraft['hex'])
+                                alerted.append(aircraft['hex'])
 
-                            a_record = self.watchlist.get_display(aircraft['hex'])
-                            if a_record is not None:
-                                self.logger.watchlist(aircraft, a_record)
-                            else:
-                                self.logger.watchlist(aircraft)
+                            except Exception:
+                                print("Alert Publish Error")
+                                self.logger.error("Alert Publish Error")
 
-
-                        except Exception:
-                            print("Alert Publish Error")
-                            self.logger.error("Alert Publish Error")
                     elif alert:
                         alerted.append(aircraft['hex'])
 
