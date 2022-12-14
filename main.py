@@ -158,6 +158,17 @@ class MQTTController:
             self.publish(topic, "Removing from watchlist", 0)
             icao24 = payload.split()[1].strip()
             self.watchlist.remove('icao24', icao24)
+        if payload.split()[0] == "db_get":
+            s = payload.split()
+            if len(s) == 2:
+                record = self.watchlist.db_get(s[1])
+                if record is not None:
+                    data = json.dumps(record)
+                else:
+                    data = "Not Found"
+            else:
+                data = "Invalid Request"
+            self.publish(topic, data, 0)
         if payload.split()[0] == "db_update":
             print("Updating Database")
             self.publish(topic, "Updating Database", 0)
