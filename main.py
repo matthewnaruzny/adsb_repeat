@@ -35,6 +35,7 @@ class Watchlist:
 
     def db_loaded(self):
         return self.db_skip
+
     def db_load(self):
         """
         Loads aircraft database into memory. Required before retrieving records
@@ -49,7 +50,6 @@ class Watchlist:
     def db_network_update(self):
         subprocess.run(["sh", "./update_db.sh"])
         self.db_reload()
-
 
     def db_get(self, icao24):
         """
@@ -138,10 +138,12 @@ class Watchlist:
 
 class MQTTController:
 
-    def __init__(self, data_config, watchlist):
+    def __init__(self, data_config, watchlist, logger):
         assert isinstance(watchlist, Watchlist)
+        assert isinstance(logger, LogFile)
         self.data_config = data_config
         self.watchlist = watchlist
+        self.logger = logger
 
     def publish(self, topic, payload, qos):
         pass
@@ -164,6 +166,7 @@ class MQTTController:
                 record = self.watchlist.db_get(s[1])
                 if record is not None:
                     data = json.dumps(record)
+                    self.logger.log("DB", "MQTT SEARCH: " + s[1].upper())
                 else:
                     data = "Not Found"
             else:
@@ -179,8 +182,8 @@ class MQTTController:
 
 class AWSConnector(MQTTController):
 
-    def __init__(self, data_config, watchlist):
-        super().__init__(data_config, watchlist)
+    def __init__(self, data_config, watchlist, logger):
+        super().__init__(data_config, watchlist, logger)
         self.aws_config = data_config.aws
         self.default_topic = "adsb/" + self.aws_config['id']
         self.aws_client = self.establish_connection()
@@ -225,8 +228,8 @@ class AWSConnector(MQTTController):
 
 class RemoteMQTTController(MQTTController):
 
-    def __init__(self, data_config, watchlist):
-        super().__init__(data_config, watchlist)
+    def __init__(self, data_config, watchlist, logger):
+        super().__init__(data_config, watchlist, logger)
         self.mqtt_config = data_config.mqtt
         self.default_topic = "adsb/" + self.mqtt_config['client_name']
         self.client = self.establish_connection()
@@ -283,22 +286,22 @@ class LogFile:
 class ADSBController:
 
     def __init__(self, config, db_skip=False):
+        self.logger = LogFile()
+
         # Load Watchlist
         print("Loading Watchlist...")
         self.watchlist = Watchlist(db_skip=db_skip)
         print("Watchlist Loaded")
 
-        self.logger = LogFile()
-
         # Remote Mode
         if config.mode == "aws":
             print("AWS Connection")
             self.c_enabled = True
-            self.controller = AWSConnector(config, self.watchlist)
+            self.controller = AWSConnector(config, self.watchlist, self.logger)
         elif config.mode == "mqtt":
             print("MQTT Connection")
             self.c_enabled = True
-            self.controller = RemoteMQTTController(config, self.watchlist)
+            self.controller = RemoteMQTTController(config, self.watchlist, self.logger)
         else:
             print("MQTT Remote Disabled")
             self.c_enabled = False
@@ -396,6 +399,6 @@ class ADSBController:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--fast_load', action='store_true') # Flag for fast load
+    parser.add_argument('-f', '--fast_load', action='store_true')  # Flag for fast load
     args = parser.parse_args()
     client = ADSBController(config, db_skip=args.fast_load)
