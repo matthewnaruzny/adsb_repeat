@@ -247,6 +247,7 @@ class RemoteMQTTController(MQTTController):
     def publish(self, topic, payload, qos):
         try:
             self.client.publish(topic, payload, qos)
+            self.client.loop()
         except Exception:
             print("General Publish Error")
 
