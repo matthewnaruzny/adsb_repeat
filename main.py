@@ -317,7 +317,7 @@ class ADSBController:
             if self.c_enabled:
                 self.controller.publish(self.controller.default_topic + "/alive", str(time.time()), 1)
 
-            with open("/run/dump1090-mutability/aircraft.json", "r") as f:
+            with open("/run/dump1090-fa/aircraft.json", "r") as f:
                 a = json.load(f)
                 t_aircraft = a['aircraft']
                 if self.c_enabled:
